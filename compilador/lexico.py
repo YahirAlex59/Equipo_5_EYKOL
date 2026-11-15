@@ -14,17 +14,18 @@ from .errores import ErrorCompilacion
 # Palabras reservadas: se reconocen primero como ID y luego se reclasifican
 #   'texto en el lenguaje' : 'NOMBRE_DEL_TOKEN'
 reservadas = {
-    'entero'    : 'RENTERO',
-    'decimal'   : 'RDECIMAL',
-    'cadena'    : 'RCADENA',
-    'booleano'  : 'RBOOLEANO',
-    'si'        : 'RSI',
-    'sino'      : 'RSINO',
-    'mientras'  : 'RMIENTRAS',
-    'para'      : 'RPARA',
-    'mostrar'   : 'RMOSTRAR',
-    'verdadero' : 'RVERDADERO',
-    'falso'     : 'RFALSO',
+    'ent'     : 'RENTERO',
+    'deci'    : 'RDECIMAL',
+    'txt'     : 'RCADENA',
+    'boli'    : 'RBOOLEANO',
+    'si'      : 'RSI',
+    'osi'     : 'RSINO',
+    'durante' : 'RMIENTRAS',
+    'repetir' : 'RPARA',
+    'impt'    : 'RMOSTRAR',
+    'vrd'     : 'RVERDADERO',
+    'fals'    : 'RFALSO',
+    'raiz'    : 'RRAIZ',
 }
 
 tokens = [
