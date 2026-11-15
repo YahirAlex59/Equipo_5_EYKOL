@@ -12,7 +12,7 @@
 #   ('mientras', condicion, [instrucciones])
 #   ('para',     inicio, condicion, paso, [instrucciones])
 #   ('binaria',  operador, izquierda, derecha)
-#   ('negativo', expresion)   ('not', expresion)
+#   ('negativo', expresion)   ('not', expresion)   ('raiz', expresion)
 #   ('valor',    valor)       ('id', nombre)
 # -----------------------------------------------------------------------------
 import ply.yacc as yacc
@@ -147,6 +147,11 @@ def p_expresion_not(t):
     t[0] = ('not', t[2])
 
 
+def p_expresion_raiz(t):
+    'expresion : RRAIZ PARIZQ expresion PARDER'
+    t[0] = ('raiz', t[3])
+
+
 def p_expresion_agrupacion(t):
     'expresion : PARIZQ expresion PARDER'
     t[0] = t[2]
@@ -162,7 +167,7 @@ def p_expresion_valor(t):
 def p_expresion_booleano(t):
     '''expresion : RVERDADERO
                  | RFALSO'''
-    t[0] = ('valor', t[1] == 'verdadero')
+    t[0] = ('valor', t.slice[1].type == 'RVERDADERO')
 
 
 def p_expresion_id(t):
