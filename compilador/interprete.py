@@ -4,6 +4,7 @@
 # En lugar de print(), guarda lo que el programa muestra en una lista para que
 # el IDE lo pueda poner en su panel de salida.
 # -----------------------------------------------------------------------------
+import math
 import operator
 
 from .errores import ErrorCompilacion
@@ -15,7 +16,7 @@ OPERADORES = {
 }
 
 # Tipo del lenguaje -> tipo de Python
-TIPOS = {'entero': int, 'decimal': float, 'cadena': str, 'booleano': bool}
+TIPOS = {'ent': int, 'deci': float, 'txt': str, 'boli': bool}
 
 # Evita que un ciclo infinito congele el IDE
 MAX_ITERACIONES = 100_000
@@ -35,7 +36,7 @@ def _convertir(tipo, valor, nombre):
 def _texto(valor):
     """Cómo se muestra un valor en la salida."""
     if type(valor) is bool:
-        return 'verdadero' if valor else 'falso'
+        return 'vrd' if valor else 'fals'
     return str(valor)
 
 
@@ -52,6 +53,13 @@ class Interprete:
             return -self.evaluar(e[1])
         if e[0] == 'not':
             return not self.evaluar(e[1])
+        if e[0] == 'raiz':
+            valor = self.evaluar(e[1])
+            if type(valor) not in (int, float) or type(valor) is bool:
+                _error("raiz() requiere un número, se recibió %s" % _texto(valor))
+            if valor < 0:
+                _error("no se puede calcular la raíz cuadrada de un número negativo (%s)" % valor)
+            return math.sqrt(valor)
         if e[0] == 'id':
             if e[1] not in self.tabla:
                 _error("la variable '%s' no está declarada" % e[1])
