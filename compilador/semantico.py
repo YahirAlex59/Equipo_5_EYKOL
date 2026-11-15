@@ -14,7 +14,7 @@ def _revisar_expresion(e, declaradas):
     if e[0] == 'id':
         if e[1] not in declaradas:
             _error("la variable '%s' no está declarada" % e[1])
-    elif e[0] in ('negativo', 'not'):
+    elif e[0] in ('negativo', 'not', 'raiz'):
         _revisar_expresion(e[1], declaradas)
     elif e[0] == 'binaria':
         _revisar_expresion(e[2], declaradas)
