@@ -5,7 +5,7 @@
 #     if_false t2 goto L1
 # -----------------------------------------------------------------------------
 
-VALOR_INICIAL = {'entero': '0', 'decimal': '0.0', 'cadena': '""', 'booleano': 'falso'}
+VALOR_INICIAL = {'ent': '0', 'deci': '0.0', 'txt': '""', 'boli': 'fals'}
 
 def generar_codigo(arbol):
     """Regresa la lista de líneas de código de tres direcciones del árbol."""
@@ -21,7 +21,7 @@ def generar_codigo(arbol):
         if e[0] == 'valor':
             v = e[1]
             if type(v) is bool:
-                return 'verdadero' if v else 'falso'
+                return 'vrd' if v else 'fals'
             if type(v) is str:
                 return '"%s"' % v
             return str(v)
@@ -36,6 +36,11 @@ def generar_codigo(arbol):
             a = expresion(e[1])
             t = nuevo('t')
             codigo.append('%s = !%s' % (t, a))
+            return t
+        if e[0] == 'raiz':
+            a = expresion(e[1])
+            t = nuevo('t')
+            codigo.append('%s = raiz %s' % (t, a))
             return t
         # binaria
         izq = expresion(e[2])
@@ -54,7 +59,7 @@ def generar_codigo(arbol):
                 _, nombre, expr = ins
                 codigo.append('%s = %s' % (nombre, expresion(expr)))
             elif ins[0] == 'mostrar':
-                codigo.append('mostrar %s' % expresion(ins[1]))
+                codigo.append('impt %s' % expresion(ins[1]))
             elif ins[0] == 'si':
                 _, condicion, entonces, sino = ins
                 l_sino, l_fin = nuevo('L'), nuevo('L')
