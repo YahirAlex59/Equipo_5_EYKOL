@@ -1,8 +1,8 @@
-entero n = 5;
-entero factorial = 1;
+ent n = 5;
+ent factorial = 1;
 
-para (entero i = 1; i <= n; i = i + 1) {
+repetir (ent i = 1; i <= n; i = i + 1) {
     factorial = factorial * i;
 }
 
-mostrar("El factorial de " + n + " es " + factorial);
+impt("El factorial de " + n + " es " + factorial);
