@@ -1,0 +1,28 @@
+// Programa de ejemplo con la sintaxis ACTUAL (antes de personalizar el lenguaje)
+
+entero n = 5;
+entero factorial = 1;
+para (entero i = 1; i <= n; i = i + 1) {
+    factorial = factorial * i;
+}
+mostrar("El factorial de " + n + " es " + factorial);
+
+/* Condicionales */
+decimal nota = 8.5;
+si (nota >= 9) {
+    mostrar("Excelente");
+} sino si (nota >= 7) {
+    mostrar("Aprobado");
+} sino {
+    mostrar("Reprobado");
+}
+
+// Ciclo mientras
+entero contador = 3;
+mientras (contador > 0) {
+    mostrar(contador);
+    contador = contador - 1;
+}
+
+booleano listo = verdadero && !falso;
+mostrar(listo);

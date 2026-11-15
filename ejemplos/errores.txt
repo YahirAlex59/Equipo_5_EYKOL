@@ -1,0 +1,11 @@
+// Este programa tiene un error a propósito para probar los mensajes.
+// Prueben quitando el comentario de cada caso, uno a la vez.
+
+entero x = 10;
+mostrar(x);
+
+// Error léxico:      entero y = 5 @ 2;
+// Error sintáctico:  entero z = 3
+// Error semántico:   mostrar(w);
+// Error de ejecución:
+mostrar(x / 0);
