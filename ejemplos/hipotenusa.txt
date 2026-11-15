@@ -1,0 +1,10 @@
+// Ejemplo de hipotenusa.
+// Requiere implementar la función raiz() en el compilador.
+
+decimal a = 3.0;
+decimal b = 4.0;
+decimal c = 0.0;
+
+c = raiz(a * a + b * b);
+
+mostrar("La hipotenusa es " + c);

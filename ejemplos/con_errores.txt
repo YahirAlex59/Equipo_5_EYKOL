@@ -1,0 +1,9 @@
+// Pruebas de errores intencionales
+
+entero x = 10;
+entero y = 5 @ 2;
+
+entero z = 3
+mostrar(w);
+
+entero resultado = x / 0;

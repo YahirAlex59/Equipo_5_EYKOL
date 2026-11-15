@@ -1,0 +1,13 @@
+entero a = 15;
+entero b = 28;
+entero c = 10;
+
+si (a > b && a > c) {
+    mostrar("El mayor es " + a);
+}
+sino si (b > a && b > c) {
+    mostrar("El mayor es " + b);
+}
+sino {
+    mostrar("El mayor es " + c);
+}
