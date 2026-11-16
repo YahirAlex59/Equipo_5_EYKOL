@@ -7,14 +7,14 @@ boli esAdmin = fals;
 // Operador && (Y)
 si (esMayor && tienePermiso) {
     impt("Es mayor y tiene permiso");
-} osi (esMayor && !tienePermiso) {
+} osi {
     impt("Es mayor pero NO tiene permiso");
 }
 
 // Operador || (O)
 si (tienePermiso || esAdmin) {
     impt("Puede entrar");
-} osi (!tienePermiso && !esAdmin) {
+} osi {
     impt("Acceso denegado");
 }
 
