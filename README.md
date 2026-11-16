@@ -10,7 +10,6 @@ sintaxis y paneles para ver cada fase.
 - Yahir
 - Karol
 - Edsson
-- (agregar al resto del Equipo 5)
 
 ## Requisitos
 
