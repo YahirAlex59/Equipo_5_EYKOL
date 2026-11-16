@@ -53,6 +53,7 @@ y `logica_booleana.txt`.
 ## Estructura del proyecto
 
 ```
+compilador/  Analizadores léxico, sintáctico, semántico, código intermedio e intérprete
 ejemplos/    Programas de ejemplo en EYKOL
 ide/         Interfaz gráfica (editor, resaltador, paneles)
 main.py      Punto de entrada (consola e IDE)
