@@ -1,0 +1,24 @@
+// Ejemplo de variables y operadores booleanos en EYKOL
+
+boli esMayor = vrd;
+boli tienePermiso = fals;
+boli esAdmin = fals;
+
+// Operador && (Y)
+si (esMayor && tienePermiso) {
+    impt("Es mayor y tiene permiso");
+} osi (esMayor && !tienePermiso) {
+    impt("Es mayor pero NO tiene permiso");
+}
+
+// Operador || (O)
+si (tienePermiso || esAdmin) {
+    impt("Puede entrar");
+} osi (!tienePermiso && !esAdmin) {
+    impt("Acceso denegado");
+}
+
+// Operador ! (NO)
+si (!esAdmin) {
+    impt("El usuario no es administrador");
+}
