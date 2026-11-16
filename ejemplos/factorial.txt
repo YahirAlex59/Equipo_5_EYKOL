@@ -1,4 +1,4 @@
-ent n = 5;
+ent n = 6;
 ent factorial = 1;
 
 repetir (ent i = 1; i <= n; i = i + 1) {
@@ -6,3 +6,4 @@ repetir (ent i = 1; i <= n; i = i + 1) {
 }
 
 impt("El factorial de " + n + " es " + factorial);
+impt("hola como estan "
