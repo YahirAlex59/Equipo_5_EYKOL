@@ -1,5 +1,6 @@
 
 import sys
+import pprint
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -12,7 +13,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QLabel,
     QFileDialog,
-    QMessageBox
+    QMessageBox,
+    QTabWidget
 )
 
 RUTA_PROYECTO = Path(__file__).resolve().parent.parent
@@ -29,7 +31,7 @@ class VentanaIDE(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("EYKOL")
-        self.resize(900, 650)
+        self.resize(1000, 750)
 
         self.archivo_actual = None
 
@@ -59,19 +61,38 @@ class VentanaIDE(QMainWindow):
 
         layout.addLayout(barra_botones)
 
-        # Editor
+        # Editor de código
         layout.addWidget(QLabel("Editor de código"))
 
         self.editor = QPlainTextEdit()
         self.editor.setPlaceholderText("Escribe tu código aquí...")
         layout.addWidget(self.editor)
 
-        # Salida
-        layout.addWidget(QLabel("Salida"))
+        # Pestañas de resultados
+        self.pestanas = QTabWidget()
 
+        # Pestaña de salida y errores
         self.salida = QPlainTextEdit()
         self.salida.setReadOnly(True)
-        layout.addWidget(self.salida)
+        self.pestanas.addTab(self.salida, "Salida / Errores")
+
+        # Pestaña de código intermedio
+        self.codigo_intermedio = QPlainTextEdit()
+        self.codigo_intermedio.setReadOnly(True)
+        self.pestanas.addTab(
+            self.codigo_intermedio,
+            "Código Intermedio"
+        )
+
+        # Pestaña del árbol sintáctico
+        self.arbol_sintactico = QPlainTextEdit()
+        self.arbol_sintactico.setReadOnly(True)
+        self.pestanas.addTab(
+            self.arbol_sintactico,
+            "Árbol Sintáctico"
+        )
+
+        layout.addWidget(self.pestanas)
 
     def abrir_archivo(self):
         ruta, _ = QFileDialog.getOpenFileName(
@@ -134,6 +155,8 @@ class VentanaIDE(QMainWindow):
     def limpiar_editor(self):
         self.editor.clear()
         self.salida.clear()
+        self.codigo_intermedio.clear()
+        self.arbol_sintactico.clear()
 
     def ejecutar_codigo(self):
         codigo = self.editor.toPlainText()
@@ -155,11 +178,31 @@ class VentanaIDE(QMainWindow):
                 + texto_errores
             )
         elif texto_errores:
-            texto = "========== ERRORES ==========\n" + texto_errores
+            texto = (
+                "========== ERRORES ==========\n"
+                + texto_errores
+            )
         else:
-            texto = "========== SALIDA ==========\n" + texto_salida
+            texto = (
+                "========== SALIDA ==========\n"
+                + texto_salida
+            )
 
         self.salida.setPlainText(texto)
+
+        # Mostrar código intermedio
+        texto_intermedio = "\n".join(
+            str(linea) for linea in resultado.codigo_intermedio
+        )
+        self.codigo_intermedio.setPlainText(texto_intermedio)
+
+        # Mostrar árbol sintáctico
+        texto_arbol = pprint.pformat(
+            resultado.arbol,
+            indent=4,
+            width=80
+        )
+        self.arbol_sintactico.setPlainText(texto_arbol)
 
 
 if __name__ == "__main__":
