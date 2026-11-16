@@ -23,6 +23,13 @@ RUTA_EJEMPLOS = RUTA_PROYECTO / "ejemplos"
 sys.path.insert(0, str(RUTA_PROYECTO))
 
 from compilador.compilador import compilar
+from ide.resaltador import ResaltadorEYKOL
+from ide.paneles import (
+    crear_tabla_tokens,
+    llenar_tabla_tokens,
+    crear_tabla_simbolos,
+    llenar_tabla_simbolos
+)
 
 
 class VentanaIDE(QMainWindow):
@@ -68,15 +75,23 @@ class VentanaIDE(QMainWindow):
         self.editor.setPlaceholderText("Escribe tu código aquí...")
         layout.addWidget(self.editor)
 
+        # Resaltador de sintaxis
+        self.resaltador = ResaltadorEYKOL(
+            self.editor.document()
+        )
+
         # Pestañas de resultados
         self.pestanas = QTabWidget()
 
-        # Pestaña de salida y errores
+        # Salida y errores
         self.salida = QPlainTextEdit()
         self.salida.setReadOnly(True)
-        self.pestanas.addTab(self.salida, "Salida / Errores")
+        self.pestanas.addTab(
+            self.salida,
+            "Salida / Errores"
+        )
 
-        # Pestaña de código intermedio
+        # Código intermedio
         self.codigo_intermedio = QPlainTextEdit()
         self.codigo_intermedio.setReadOnly(True)
         self.pestanas.addTab(
@@ -84,12 +99,26 @@ class VentanaIDE(QMainWindow):
             "Código Intermedio"
         )
 
-        # Pestaña del árbol sintáctico
+        # Árbol sintáctico
         self.arbol_sintactico = QPlainTextEdit()
         self.arbol_sintactico.setReadOnly(True)
         self.pestanas.addTab(
             self.arbol_sintactico,
             "Árbol Sintáctico"
+        )
+
+        # Tabla de tokens
+        self.tabla_tokens = crear_tabla_tokens()
+        self.pestanas.addTab(
+            self.tabla_tokens,
+            "Tokens"
+        )
+
+        # Tabla de símbolos
+        self.tabla_simbolos = crear_tabla_simbolos()
+        self.pestanas.addTab(
+            self.tabla_simbolos,
+            "Tabla de Símbolos"
         )
 
         layout.addWidget(self.pestanas)
@@ -158,10 +187,14 @@ class VentanaIDE(QMainWindow):
         self.codigo_intermedio.clear()
         self.arbol_sintactico.clear()
 
+        llenar_tabla_tokens(self.tabla_tokens, [])
+        llenar_tabla_simbolos(self.tabla_simbolos, {})
+
     def ejecutar_codigo(self):
         codigo = self.editor.toPlainText()
         resultado = compilar(codigo)
 
+        # Mostrar salida y errores
         texto_salida = "\n".join(
             str(linea) for linea in resultado.salida
         )
@@ -203,6 +236,18 @@ class VentanaIDE(QMainWindow):
             width=80
         )
         self.arbol_sintactico.setPlainText(texto_arbol)
+
+        # Mostrar tokens
+        llenar_tabla_tokens(
+            self.tabla_tokens,
+            resultado.tokens
+        )
+
+        # Mostrar tabla de símbolos
+        llenar_tabla_simbolos(
+            self.tabla_simbolos,
+            resultado.tabla_simbolos
+        )
 
 
 if __name__ == "__main__":
