@@ -139,14 +139,25 @@ class VentanaIDE(QMainWindow):
         codigo = self.editor.toPlainText()
         resultado = compilar(codigo)
 
-        if resultado.exito:
-            texto = "\n".join(
-                str(linea) for linea in resultado.salida
+        texto_salida = "\n".join(
+            str(linea) for linea in resultado.salida
+        )
+
+        texto_errores = "\n".join(
+            str(error) for error in resultado.errores
+        )
+
+        if texto_salida and texto_errores:
+            texto = (
+                "========== SALIDA ==========\n"
+                + texto_salida
+                + "\n\n========== ERRORES ==========\n"
+                + texto_errores
             )
+        elif texto_errores:
+            texto = "========== ERRORES ==========\n" + texto_errores
         else:
-            texto = "\n".join(
-                str(error) for error in resultado.errores
-            )
+            texto = "========== SALIDA ==========\n" + texto_salida
 
         self.salida.setPlainText(texto)
 
