@@ -1,0 +1,20 @@
+// Ejemplo de ciclo durante en EYKOL
+
+// Parte 1: cuenta regresiva
+ent contador = 5;
+impt("Cuenta regresiva:");
+durante (contador > 0) {
+    impt(contador);
+    contador = contador - 1;
+}
+impt("Despegue");
+
+// Parte 2: suma de los numeros del 1 al 10
+ent i = 1;
+ent suma = 0;
+durante (i <= 10) {
+    suma = suma + i;
+    i = i + 1;
+}
+impt("La suma del 1 al 10 es:");
+impt(suma);
