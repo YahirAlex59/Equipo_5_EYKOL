@@ -17,7 +17,7 @@
 # -----------------------------------------------------------------------------
 import ply.yacc as yacc
 
-from .errores import ErrorCompilacion
+from .errores import ErrorCompilacion, calcular_columna
 from .lexico import tokens, lexer   # PLY necesita `tokens` en este módulo
 
 # Asociación de operadores y precedencia (de menor a mayor, como en C)
@@ -178,7 +178,8 @@ def p_expresion_id(t):
 # ---------------------------- Errores ----------------------------------------
 def p_error(t):
     if t:
-        raise ErrorCompilacion('Sintáctico', "símbolo inesperado '%s'" % t.value, t.lineno)
+        columna = calcular_columna(getattr(t.lexer, 'lexdata', None), getattr(t, 'lexpos', None))
+        raise ErrorCompilacion('Sintáctico', "símbolo inesperado '%s'" % t.value, t.lineno, columna)
     raise ErrorCompilacion('Sintáctico', 'el programa terminó antes de tiempo (¿falta un ; o una } ?)')
 
 
