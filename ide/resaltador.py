@@ -22,17 +22,17 @@ class ResaltadorEYKOL(QSyntaxHighlighter):
     def __init__(self, documento):
         super().__init__(documento)
 
-        self.formato_comentario = _formato("#6A9955", cursiva=True)
+        self.formato_comentario = _formato("#6B7280", cursiva=True)
         self.reglas = []
 
         # Palabras reservadas
-        formato_reservadas = _formato("#569CD6", negrita=True)
+        formato_reservadas = _formato("#60A5FA", negrita=True)
         for palabra in self.PALABRAS_RESERVADAS:
             self.reglas.append((QRegularExpression(rf"\b{palabra}\b"), formato_reservadas))
 
         # Numeros enteros y decimales
         self.reglas.append(
-            (QRegularExpression(r"\b\d+(\.\d+)?\b"), _formato("#B5CEA8"))
+            (QRegularExpression(r"\b\d+(\.\d+)?\b"), _formato("#EAB308"))
         )
 
         # Cadenas entre comillas
@@ -40,9 +40,9 @@ class ResaltadorEYKOL(QSyntaxHighlighter):
             (QRegularExpression(r'"[^"\n]*"'), _formato("#CE9178"))
         )
 
-        # Comentario de una linea (va al final para que tenga prioridad)
+        # Comentarios de una linea (va al final para que tenga prioridad)
         self.reglas.append(
-            (QRegularExpression(r"//[^\n]*"), self.formato_comentario)
+            (QRegularExpression(r"(//|#)[^\n]*"), self.formato_comentario)
         )
 
         # Comentario de varias lineas /* ... */
