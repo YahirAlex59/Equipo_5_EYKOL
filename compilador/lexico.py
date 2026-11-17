@@ -76,7 +76,7 @@ def t_COMENTARIO_MULTILINEA(t):
 
 
 def t_COMENTARIO_SIMPLE(t):
-    r'//.*'
+    r'(//|\#).*'
 
 
 def t_DECIMAL(t):
