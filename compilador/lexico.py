@@ -9,7 +9,7 @@
 # -----------------------------------------------------------------------------
 import ply.lex as lex
 
-from .errores import ErrorCompilacion, calcular_columna
+from .errores import calcular_columna, error_lexico
 
 # Palabras reservadas: se reconocen primero como ID y luego se reclasifican
 #   'texto en el lenguaje' : 'NOMBRE_DEL_TOKEN'
@@ -110,7 +110,7 @@ def t_newline(t):
 
 def t_error(t):
     columna = calcular_columna(t.lexer.lexdata, t.lexpos)
-    errores.append(ErrorCompilacion('Léxico', "carácter no válido '%s'" % t.value[0], t.lexer.lineno, columna))
+    errores.append(error_lexico(t.value[0], t.lexer.lineno, columna))
     t.lexer.skip(1)
 
 

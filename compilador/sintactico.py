@@ -17,7 +17,7 @@
 # -----------------------------------------------------------------------------
 import ply.yacc as yacc
 
-from .errores import ErrorCompilacion, calcular_columna
+from .errores import error_sintactico
 from .lexico import tokens, lexer   # PLY necesita `tokens` en este módulo
 
 # Asociación de operadores y precedencia (de menor a mayor, como en C)
@@ -177,10 +177,34 @@ def p_expresion_id(t):
 
 # ---------------------------- Errores ----------------------------------------
 def p_error(t):
-    if t:
-        columna = calcular_columna(getattr(t.lexer, 'lexdata', None), getattr(t, 'lexpos', None))
-        raise ErrorCompilacion('Sintáctico', "símbolo inesperado '%s'" % t.value, t.lineno, columna)
-    raise ErrorCompilacion('Sintáctico', 'el programa terminó antes de tiempo (¿falta un ; o una } ?)')
+    # Tokens que el parser aceptaba en el estado donde falló: con ellos el
+    # mensaje puede decir exactamente qué faltaba (ver errores.py).
+    esperados = set(parser.action.get(parser.state, {}).keys())
+    raise error_sintactico(t, esperados, _lector.anterior if t else _lector.actual)
+
+
+class _LectorConMemoria:
+    """Envuelve al lexer y recuerda los dos últimos tokens leídos, para
+    poder decir, por ejemplo, "falta ';' al final de la línea 6"."""
+
+    def __init__(self, lexer):
+        self.lexer = lexer
+        self.anterior = None
+        self.actual = None
+
+    def input(self, codigo):
+        self.anterior = self.actual = None
+        self.lexer.input(codigo)
+
+    def token(self):
+        tok = self.lexer.token()
+        if tok is not None:
+            tok.lexer = self.lexer   # PLY no siempre lo asigna; sirve para calcular la columna
+            self.anterior, self.actual = self.actual, tok
+        return tok
+
+
+_lector = _LectorConMemoria(lexer)
 
 
 # Construye el parser. Genera parsetab.py y parser.out dentro de esta carpeta;
@@ -191,5 +215,5 @@ parser = yacc.yacc()
 def analizar_sintactico(codigo):
     """Regresa el árbol (lista de instrucciones). Lanza ErrorCompilacion si hay error."""
     lexer.lineno = 1
-    arbol = parser.parse(codigo, lexer=lexer)
+    arbol = parser.parse(codigo, lexer=_lector)
     return arbol or []

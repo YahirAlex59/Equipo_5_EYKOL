@@ -78,7 +78,11 @@ VERDE = "#22C55E"
 VERDE_SUAVE = "#34D399"
 ROJO = "#F87171"
 AMARILLO = "#EAB308"
-NARANJA_CADENA = "#CE9178"
+
+# Colores del codigo (mismos que en ide/resaltador.py)
+CODIGO_PALABRA = "#4FC3FF"
+CODIGO_NUMERO = "#B5F58A"
+CODIGO_CADENA = "#FFB08A"
 
 COLOR_ICONO_CLARO = QColor(TEXTO)
 FUENTE_MONO = "'Consolas', 'Cascadia Mono', monospace"
@@ -289,6 +293,10 @@ QLabel#mensajeError {{
     color: {ROJO};
     font-family: {FUENTE_MONO};
     font-size: 10pt;
+}}
+QLabel#sugerenciaError {{
+    color: {TEXTO_GRIS};
+    font-size: 12px;
 }}
 QLabel#ubicacionError {{
     color: {TEXTO_APAGADO};
@@ -979,12 +987,12 @@ class ResaltadorIntermedio(QSyntaxHighlighter):
             return f
 
         self.reglas = [
-            (QRegularExpression(r"\b\d+(\.\d+)?\b"), fmt(AMARILLO)),
+            (QRegularExpression(r"\b\d+(\.\d+)?\b"), fmt(CODIGO_NUMERO)),
             (QRegularExpression(r"\bt\d+\b"), fmt(MORADO)),
-            (QRegularExpression(r"\b(if_false|if|goto|impt|param|call|return)\b"), fmt(AZUL, True)),
+            (QRegularExpression(r"\b(if_false|if|goto|impt|param|call|return)\b"), fmt(CODIGO_PALABRA, True)),
             (QRegularExpression(r"^\s*L\d+:"), fmt(AMARILLO, True)),
             (QRegularExpression(r"\bL\d+\b"), fmt(AMARILLO)),
-            (QRegularExpression(r'"[^"\n]*"'), fmt(NARANJA_CADENA)),
+            (QRegularExpression(r'"[^"\n]*"'), fmt(CODIGO_CADENA)),
         ]
 
     def highlightBlock(self, texto):
@@ -1001,9 +1009,10 @@ class ResaltadorIntermedio(QSyntaxHighlighter):
 class _ItemError(QWidget):
     """Fila del panel de errores: icono rojo, mensaje y ubicacion."""
 
-    def __init__(self, mensaje, ubicacion):
+    def __init__(self, mensaje, ubicacion, sugerencia=None):
         super().__init__()
         self.setObjectName("itemError")
+        self.setToolTip(mensaje + (f"\n\nSugerencia: {sugerencia}" if sugerencia else ""))
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 7, 10, 7)
         layout.setSpacing(10)
@@ -1019,6 +1028,10 @@ class _ItemError(QWidget):
         etiqueta_mensaje = QLabel(mensaje)
         etiqueta_mensaje.setObjectName("mensajeError")
         textos.addWidget(etiqueta_mensaje)
+        if sugerencia:
+            etiqueta_sugerencia = QLabel(f"Sugerencia: {sugerencia}")
+            etiqueta_sugerencia.setObjectName("sugerenciaError")
+            textos.addWidget(etiqueta_sugerencia)
         if ubicacion:
             etiqueta_ubicacion = QLabel(ubicacion)
             etiqueta_ubicacion.setObjectName("ubicacionError")
@@ -1715,18 +1728,16 @@ class VentanaIDE(QMainWindow):
             f"color: {ROJO if total else TEXTO_APAGADO}; font-size: 10px;"
         )
 
+        # Primera linea del panel: el estado, escrito como linea de consola
+        if not ejecutado:
+            self._linea_consola_errores("> Ejecuta el código (F5) para ver aquí los errores", TEXTO_APAGADO)
+        elif errores:
+            self._linea_consola_errores(
+                f"✗ Estado: Código inválido ({total} error(es) detectado(s))", ROJO
+            )
+        else:
+            self._linea_consola_errores("✓ Estado: Código válido (sin errores)", VERDE_SUAVE)
         if not errores:
-            item = QListWidgetItem()
-            item.setFlags(Qt.ItemFlag.NoItemFlags)
-            if ejecutado:
-                item.setIcon(QIcon(_dibujar_icono("ok")))
-                item.setText("  No se encontraron errores")
-                item.setForeground(QColor(VERDE_SUAVE))
-            else:
-                item.setText("  Ejecuta el código (F5) para ver aquí los errores.")
-                item.setForeground(QColor(TEXTO_APAGADO))
-            item.setSizeHint(QSize(0, 34))
-            self.lista_errores.addItem(item)
             return
 
         nombre = self._nombre_archivo()
@@ -1740,12 +1751,21 @@ class VentanaIDE(QMainWindow):
             else:
                 ubicacion = f"{nombre}   [fase: {getattr(error, 'fase', '—')}]"
 
-            widget = _ItemError(self._texto_error(error), ubicacion)
+            widget = _ItemError(self._texto_error(error), ubicacion, getattr(error, "sugerencia", None))
             item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, (linea, columna))
             item.setSizeHint(widget.sizeHint())
             self.lista_errores.addItem(item)
             self.lista_errores.setItemWidget(item, widget)
+
+    def _linea_consola_errores(self, texto, color):
+        """Agrega al panel de errores una linea con letra de consola (no seleccionable)."""
+        item = QListWidgetItem(texto)
+        item.setFlags(Qt.ItemFlag.NoItemFlags)
+        item.setFont(QFont("Consolas", 10))
+        item.setForeground(QColor(color))
+        item.setSizeHint(QSize(0, 30))
+        self.lista_errores.addItem(item)
 
     def _limpiar_errores(self):
         self._mostrar_errores([])
@@ -1762,11 +1782,11 @@ class VentanaIDE(QMainWindow):
 
         def color_valor(valor):
             if isinstance(valor, bool):
-                return AZUL
+                return CODIGO_PALABRA
             if isinstance(valor, (int, float)):
-                return AMARILLO
+                return CODIGO_NUMERO
             if isinstance(valor, str):
-                return NARANJA_CADENA
+                return CODIGO_CADENA
             return TEXTO
 
         def texto_valor(valor):
@@ -1852,6 +1872,8 @@ class VentanaIDE(QMainWindow):
         if errores:
             for error in errores:
                 self._escribir_linea(("✗ ", ROJO, True), (self._texto_error(error), ROJO))
+                if getattr(error, "sugerencia", None):
+                    self._escribir_linea(("  → " + error.sugerencia, TEXTO_GRIS))
             self._escribir_linea(
                 (f"Proceso terminado con {len(errores)} error(es) en {milisegundos:.0f} ms", ROJO, True)
             )
@@ -1875,16 +1897,16 @@ class VentanaIDE(QMainWindow):
         self._actualizar_titulos_pestanas(len(resultado.tokens or []), len(resultado.tabla_simbolos or {}))
 
         # ----- Barra de estado -----
+        # El estado (valido / invalido) ya no va aqui: se muestra en el panel ERRORES
         self.etiqueta_tiempo.setText(f"{milisegundos:.0f} ms")
+        self._poner_estado("")
         if errores:
-            self._poner_estado(f"Estado: Código inválido ({len(errores)} error(es) detectado(s))", ROJO, True)
             self.etiqueta_errores_estado.setStyleSheet(f"padding: 0px 10px; color: {ROJO};")
             self.etiqueta_errores_estado.setText(f"✗ {len(errores)} error(es)")
             if not self.pestanas.isVisible():
                 self.alternar_panel()
             self.pestanas.setCurrentIndex(0)
         else:
-            self._poner_estado("Estado: Código válido (sin errores)", VERDE_SUAVE, True)
             self.etiqueta_errores_estado.setStyleSheet(f"padding: 0px 10px; color: {VERDE_SUAVE};")
             self.etiqueta_errores_estado.setText("✓ 0 errores")
 

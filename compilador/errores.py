@@ -155,6 +155,13 @@ def describir_encontrado(token):
     return "'%s'" % token.value
 
 
+def _de(frase):
+    """'de' + frase, contrayendo 'de el' -> 'del'."""
+    if frase.startswith("el "):
+        return "del " + frase[3:]
+    return "de " + frase
+
+
 def describir_esperados(esperados):
     """Convierte un conjunto de tokens esperados en una frase corta."""
     esperados = set(esperados)
@@ -226,7 +233,7 @@ def _fin_de_token(token):
     """(linea, columna) justo después del token (donde 'falta' algo)."""
     if token is None:
         return None, None
-    datos = getattr(token.lexer, 'lexdata', None)
+    datos = getattr(getattr(token, 'lexer', None), 'lexdata', None)
     columna = calcular_columna(datos, token.lexpos)
     largo = len(str(token.value))
     if token.type == 'CADENA':
@@ -239,6 +246,28 @@ def _fin_de_token(token):
         largo = max(largo if token.type == 'CADENA' else 1, fin - token.lexpos)
         return token.lineno, columna + largo
     return token.lineno, None
+
+
+def _sin_cerrar(datos, hasta, abre, cierra):
+    """Posiciones de los `abre` que siguen sin su `cierra` antes de `hasta`
+    (sin contar los que están dentro de textos o comentarios)."""
+    if not datos:
+        return []
+    pila = []
+    desplazamiento = 0
+    for linea in datos[:hasta].split("\n"):
+        limpia = _quitar_comentarios_y_cadenas(linea)
+        for i, c in enumerate(limpia):
+            if c == abre:
+                pila.append(desplazamiento + i)
+            elif c == cierra and pila:
+                pila.pop()
+        desplazamiento += len(linea) + 1
+    return pila
+
+
+def _linea_columna(datos, posicion):
+    return datos.count("\n", 0, posicion) + 1, calcular_columna(datos, posicion)
 
 
 def error_sintactico(token, esperados, anterior=None):
@@ -254,20 +283,37 @@ def error_sintactico(token, esperados, anterior=None):
     # ---- Se acabó el programa antes de tiempo ----
     if token is None:
         linea, columna = _fin_de_token(anterior)
-        if 'LLAVDER' in esperados:
-            return ErrorCompilacion('Sintáctico', "falta '}' para cerrar un bloque",
-                                    linea, columna, "Agrega '}' al final del bloque que abriste con '{'.")
+        datos = getattr(getattr(anterior, 'lexer', None), 'lexdata', None) or ""
+        parentesis = _sin_cerrar(datos, len(datos), "(", ")")
+        llaves = _sin_cerrar(datos, len(datos), "{", "}")
+        if parentesis and 'PARDER' in esperados:
+            l_abre, c_abre = _linea_columna(datos, parentesis[-1])
+            return ErrorCompilacion('Sintáctico',
+                                    "falta ')' para cerrar el '(' de la línea %d, columna %d" % (l_abre, c_abre),
+                                    linea, columna, "Cierra el paréntesis y termina la instrucción con ';'.")
+        if llaves or 'LLAVDER' in esperados:
+            if llaves:
+                l_abre, _ = _linea_columna(datos, llaves[-1])
+                mensaje = "falta '}' para cerrar el bloque abierto en la línea %d" % l_abre
+            else:
+                mensaje = "falta '}' para cerrar un bloque"
+            return ErrorCompilacion('Sintáctico', mensaje, linea, columna,
+                                    "Agrega '}' al final del bloque que abriste con '{'.")
         if 'PTCOMA' in esperados:
             return ErrorCompilacion('Sintáctico', "falta ';' al final de la última instrucción",
                                     linea, columna, "Toda instrucción termina en ';'.")
-        if 'PARDER' in esperados:
-            return ErrorCompilacion('Sintáctico', "falta ')' para cerrar un paréntesis",
-                                    linea, columna, "Revisa que cada '(' tenga su ')'.")
         return ErrorCompilacion('Sintáctico', "el programa terminó incompleto: se esperaba %s"
                                 % describir_esperados(esperados), linea, columna)
 
-    datos = getattr(token.lexer, 'lexdata', None)
+    datos = getattr(getattr(token, 'lexer', None), 'lexdata', None)
     linea, columna = token.lineno, calcular_columna(datos, token.lexpos)
+
+    # ---- Falta ')' al final de la línea anterior ----
+    if ('PARDER' in esperados and anterior is not None and token.lineno > anterior.lineno
+            and _sin_cerrar(datos, token.lexpos, "(", ")")):
+        linea_ant, columna_ant = _fin_de_token(anterior)
+        return ErrorCompilacion('Sintáctico', "falta ')' al final de la línea %d" % anterior.lineno,
+                                linea_ant, columna_ant, "Cierra el paréntesis y termina la instrucción con ';'.")
 
     # ---- Falta ';' al final de la línea anterior ----
     if 'PTCOMA' in esperados and anterior is not None and token.lineno > anterior.lineno:
@@ -282,7 +328,7 @@ def error_sintactico(token, esperados, anterior=None):
 
     # ---- Paréntesis sin cerrar ----
     if 'PARDER' in esperados and token.type in ('PTCOMA', 'LLAVIZQ', 'LLAVDER'):
-        return ErrorCompilacion('Sintáctico', "falta ')' antes de %s" % encontrado,
+        return ErrorCompilacion('Sintáctico', "falta ')' antes %s" % _de(encontrado),
                                 linea, columna, "Revisa que cada '(' tenga su ')'.")
 
     # ---- Falta '{' para abrir el bloque ----
@@ -313,14 +359,14 @@ def error_sintactico(token, esperados, anterior=None):
 
     # ---- Dos valores seguidos sin operador ----
     if token.type in INICIO_EXPRESION and esperados & OPERADORES:
-        return ErrorCompilacion('Sintáctico', "falta un operador antes de %s" % encontrado,
+        return ErrorCompilacion('Sintáctico', "falta un operador antes %s" % _de(encontrado),
                                 linea, columna, "Une los valores con un operador (+, -, *, /, ==, &&, ...) "
                                                 "o termina la instrucción con ';'.")
 
     # ---- Falta un valor después de un operador o de '=' ----
     if esperados >= {'ENTERO', 'ID'} and token.type not in INICIO_EXPRESION:
         antes = ("después de '%s' " % anterior.value) if anterior is not None else ""
-        return ErrorCompilacion('Sintáctico', "falta un valor %santes de %s" % (antes, encontrado),
+        return ErrorCompilacion('Sintáctico', "falta un valor %santes %s" % (antes, _de(encontrado)),
                                 linea, columna, "Escribe un número, un texto, una variable o una expresión.")
 
     # ---- Caso general ----

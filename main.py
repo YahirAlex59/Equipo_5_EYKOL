@@ -67,6 +67,8 @@ def main():
         titulo('ERRORES')
         for e in r.errores:
             print(e)
+            if getattr(e, 'sugerencia', None):
+                print('    Sugerencia:', e.sugerencia)
 
         sys.exit(1)
 

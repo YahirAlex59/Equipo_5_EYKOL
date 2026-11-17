@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 from dataclasses import dataclass, field
 
-from .errores import ErrorCompilacion
+from .errores import ErrorCompilacion, ubicar_simbolo
 from .lexico import analizar_lexico
 from .sintactico import analizar_sintactico
 from .semantico import analizar_semantico
@@ -29,6 +29,14 @@ class Resultado:
         return not self.errores
 
 
+def _ubicar(error, codigo):
+    """El árbol no guarda posiciones: si el error menciona una variable, se
+    busca en el código para poder decir en qué línea y columna está."""
+    if error.linea is None and getattr(error, 'simbolo', None):
+        error.linea, error.columna = ubicar_simbolo(codigo, error.simbolo)
+    return error
+
+
 def compilar(codigo, ejecutar=True):
     """Pasa el código por todas las fases. Se detiene en la primera que falle."""
     r = Resultado()
@@ -46,7 +54,7 @@ def compilar(codigo, ejecutar=True):
         # 4. Código intermedio
         r.codigo_intermedio = generar_codigo(r.arbol)
     except ErrorCompilacion as e:
-        r.errores.append(e)
+        r.errores.append(_ubicar(e, codigo))
         return r
 
     # 5. Ejecución
@@ -55,9 +63,11 @@ def compilar(codigo, ejecutar=True):
         try:
             interprete.ejecutar(r.arbol)
         except ErrorCompilacion as e:
-            r.errores.append(e)
+            r.errores.append(_ubicar(e, codigo))
         except RecursionError:
-            r.errores.append(ErrorCompilacion('Ejecución', 'el programa es demasiado anidado'))
+            r.errores.append(ErrorCompilacion(
+                'Ejecución', 'el programa es demasiado anidado',
+                sugerencia='Reduce la cantidad de bloques o paréntesis anidados.'))
         r.salida = interprete.salida          # se conserva lo que alcanzó a mostrar
         r.tabla_simbolos = interprete.tabla
 

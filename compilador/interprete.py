@@ -7,7 +7,15 @@
 import math
 import operator
 
-from .errores import ErrorCompilacion
+from .errores import (
+    error_ciclo_infinito,
+    error_division_cero,
+    error_operacion,
+    error_raiz_negativa,
+    error_raiz_tipo,
+    error_tipo_asignacion,
+    error_variable_no_declarada,
+)
 
 OPERADORES = {
     '+': operator.add, '-': operator.sub, '*': operator.mul, '%': operator.mod,
@@ -22,15 +30,11 @@ TIPOS = {'ent': int, 'deci': float, 'txt': str, 'boli': bool}
 MAX_ITERACIONES = 100_000
 
 
-def _error(mensaje):
-    raise ErrorCompilacion('Ejecución', mensaje)
-
-
 def _convertir(tipo, valor, nombre):
     try:
         return TIPOS[tipo](valor)
     except (TypeError, ValueError):
-        _error("no se puede guardar %r en la variable '%s' de tipo %s" % (valor, nombre, tipo))
+        raise error_tipo_asignacion(valor, nombre, tipo)
 
 
 def _texto(valor):
@@ -56,13 +60,13 @@ class Interprete:
         if e[0] == 'raiz':
             valor = self.evaluar(e[1])
             if type(valor) not in (int, float) or type(valor) is bool:
-                _error("raiz() requiere un número, se recibió %s" % _texto(valor))
+                raise error_raiz_tipo(valor, _texto)
             if valor < 0:
-                _error("no se puede calcular la raíz cuadrada de un número negativo (%s)" % valor)
+                raise error_raiz_negativa(valor)
             return math.sqrt(valor)
         if e[0] == 'id':
             if e[1] not in self.tabla:
-                _error("la variable '%s' no está declarada" % e[1])
+                raise error_variable_no_declarada(e[1], self.tabla, 'Ejecución')
             return self.tabla[e[1]][1]
 
         # binaria
@@ -74,7 +78,7 @@ class Interprete:
         der = self.evaluar(e[3])
         try:
             if op in ('/', '%') and der == 0:
-                _error('división entre cero')
+                raise error_division_cero(op)
             if op == '/':
                 if type(izq) is int and type(der) is int:   # división entera, como en C
                     return int(izq / der)
@@ -83,7 +87,7 @@ class Interprete:
                 return _texto(izq) + _texto(der)           # concatenación: "x = " + 5
             return OPERADORES[op](izq, der)
         except TypeError:
-            _error("no se puede aplicar '%s' a %s y %s" % (op, _texto(izq), _texto(der)))
+            raise error_operacion(op, izq, der, _texto)
 
     # ---------------------------- Instrucciones ------------------------------
     def ejecutar(self, instrucciones):
@@ -98,7 +102,7 @@ class Interprete:
             elif tipo_ins == 'asignar':
                 _, nombre, expr = ins
                 if nombre not in self.tabla:
-                    _error("la variable '%s' no está declarada" % nombre)
+                    raise error_variable_no_declarada(nombre, self.tabla, 'Ejecución')
                 tipo = self.tabla[nombre][0]
                 self.tabla[nombre] = (tipo, _convertir(tipo, self.evaluar(expr), nombre))
 
@@ -128,7 +132,7 @@ class Interprete:
     def _contar(self, vueltas):
         vueltas += 1
         if vueltas > MAX_ITERACIONES:
-            _error('el ciclo superó %d vueltas (¿ciclo infinito?)' % MAX_ITERACIONES)
+            raise error_ciclo_infinito(MAX_ITERACIONES)
         return vueltas
 
 
