@@ -21,9 +21,30 @@ def _crear_tabla(columnas):
     tabla.setColumnCount(len(columnas))
     tabla.setHorizontalHeaderLabels(columnas)
     tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-    tabla.setAlternatingRowColors(True)
+    tabla.setAlternatingRowColors(False)
     tabla.verticalHeader().setVisible(False)
     tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+    tabla.setStyleSheet(
+        """
+        QTableWidget {
+            background-color: #12131A;
+            color: #E5E7EB;
+            gridline-color: #262837;
+            border: none;
+            selection-background-color: #252338;
+            selection-color: #FFFFFF;
+        }
+        QHeaderView::section {
+            background-color: #181924;
+            color: #9CA3AF;
+            border: none;
+            border-bottom: 1px solid #262837;
+            border-right: 1px solid #262837;
+            padding: 6px;
+            font-weight: bold;
+        }
+        """
+    )
     return tabla
 
 
