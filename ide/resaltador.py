@@ -37,7 +37,7 @@ class ResaltadorEYKOL(QSyntaxHighlighter):
 
         # Cadenas entre comillas
         self.reglas.append(
-            (QRegularExpression(r'"[^"\n]*"'), _formato("#FFB08A"))
+            (QRegularExpression(r'"[^"\n]*"'), _formato("#E490F8"))
         )
 
         # Comentarios de una linea (va al final para que tenga prioridad)

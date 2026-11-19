@@ -90,7 +90,7 @@ AMARILLO = "#EAB308"
 # Colores del codigo (mismos que en ide/resaltador.py)
 CODIGO_PALABRA = "#4FC3FF"
 CODIGO_NUMERO = "#B5F58A"
-CODIGO_CADENA = "#FFB08A"
+CODIGO_CADENA = "#E490F8"
 
 FUENTE_MONO = "'Consolas', 'Cascadia Mono', monospace"
 
@@ -1173,19 +1173,14 @@ class ResaltadorIntermedio(QSyntaxHighlighter):
 # =============================================================================
 # Ventana principal
 # =============================================================================
-# Al guardar, Python escribe los saltos de linea del sistema (CRLF en Windows)
-FIN_DE_LINEA_SISTEMA = "CRLF" if os.name == "nt" else "LF"
-
-
 class _Documento:
-    """Una pestaña del editor: su propio editor, su archivo y su fin de linea."""
+    """Una pestaña del editor: su propio editor y su archivo."""
 
     def __init__(self, nombre_nuevo):
         self.editor = EditorCodigo()
         self.resaltador = ResaltadorEYKOL(self.editor.document())
         self.archivo = None                 # Path del archivo, o None si no se ha guardado
         self.nombre_nuevo = nombre_nuevo    # "Sin título 2.txt" mientras no tenga archivo
-        self.fin_de_linea = FIN_DE_LINEA_SISTEMA
         self.punto = QLabel("●")            # indicador de cambios sin guardar en la pestaña
         self.punto.setStyleSheet(f"color: {AMARILLO}; font-size: 10px;")
         self.punto.setToolTip("Cambios sin guardar")
@@ -1228,8 +1223,6 @@ class _Isla(QFrame):
 
 
 class VentanaIDE(QMainWindow):
-
-    FIN_DE_LINEA_SISTEMA = FIN_DE_LINEA_SISTEMA
 
     def __init__(self):
         super().__init__()
@@ -1290,14 +1283,6 @@ class VentanaIDE(QMainWindow):
         doc.archivo = valor
         if valor is None and not doc.nombre_nuevo:
             doc.nombre_nuevo = self._nombre_libre(excepto=doc)
-
-    @property
-    def _fin_de_linea(self):
-        return self.documento.fin_de_linea
-
-    @_fin_de_linea.setter
-    def _fin_de_linea(self, valor):
-        self.documento.fin_de_linea = valor
 
     # ---------------------------- Acciones -----------------------------------
     def _accion(self, icono, texto, atajo, funcion, en_ventana=True):
@@ -1929,7 +1914,6 @@ class VentanaIDE(QMainWindow):
         """Crea una pestaña nueva con su propio editor y la deja activa."""
         doc = _Documento(self._nombre_libre() if sin_titulo else "")
         doc.editor.aplicar_tamano(self._tamano_editor)
-        doc.editor.cursorPositionChanged.connect(self._actualizar_posicion_cursor)
         doc.editor.document().modificationChanged.connect(self._actualizar_titulo)
         self._documentos.append(doc)
         self.pila_editores.addWidget(doc.editor)
@@ -1972,8 +1956,6 @@ class VentanaIDE(QMainWindow):
             return
         self.pila_editores.setCurrentWidget(doc.editor)
         self._actualizar_titulo()
-        if hasattr(self, "etiqueta_cursor"):
-            self._actualizar_posicion_cursor()
         if hasattr(self, "explorador"):
             if doc.archivo:
                 self._seleccionar_en_explorador(doc.archivo)
@@ -2069,21 +2051,11 @@ class VentanaIDE(QMainWindow):
         barra.addWidget(self.etiqueta_estado)
         self._poner_estado("Estado: Listo para analizar.")
 
-        # ----- Derecha: errores, tiempo, Ln:Col, fin de linea, codificacion... -----
+        # ----- Derecha: errores y lenguaje -----
         self.etiqueta_errores_estado = QLabel()
-        self.etiqueta_tiempo = QLabel("")
-        self.etiqueta_cursor = QLabel("1:1")
-        self.etiqueta_cursor.setToolTip("Línea:columna del cursor")
-        self.etiqueta_fin_linea = QLabel(self._fin_de_linea)
-        self.etiqueta_fin_linea.setToolTip("Fin de línea del archivo")
-        etiqueta_codificacion = QLabel("UTF-8")
-        etiqueta_codificacion.setToolTip("Codificación del archivo")
-        etiqueta_sangria = QLabel("4 espacios")
-        etiqueta_sangria.setToolTip("Sangría: Tab inserta 4 espacios")
         etiqueta_lenguaje = QLabel("EYKOL")
         etiqueta_lenguaje.setToolTip("Lenguaje del archivo")
-        for etiqueta in (self.etiqueta_errores_estado, self.etiqueta_tiempo, self.etiqueta_cursor,
-                         self.etiqueta_fin_linea, etiqueta_codificacion, etiqueta_sangria, etiqueta_lenguaje):
+        for etiqueta in (self.etiqueta_errores_estado, etiqueta_lenguaje):
             etiqueta.setStyleSheet("padding: 0px 10px;")
             barra.addPermanentWidget(etiqueta)
 
@@ -2177,7 +2149,6 @@ class VentanaIDE(QMainWindow):
         self.editor.setPlainText(contenido)
         self.editor.document().setModified(False)
         self.archivo_actual = archivo
-        self._fin_de_linea = "CRLF" if b"\r\n" in datos else ("LF" if b"\n" in datos else self.FIN_DE_LINEA_SISTEMA)
         self._seleccionar_en_explorador(archivo)
         self._actualizar_titulo()
         self._poner_estado(f"Archivo abierto: {archivo.name}")
@@ -2220,7 +2191,6 @@ class VentanaIDE(QMainWindow):
         self.setWindowTitle(f"{'● ' if modificado else ''}{nombre} — EYKOL IDE")
         if hasattr(self, "etiqueta_migas"):
             self._actualizar_migas()
-            self.etiqueta_fin_linea.setText(self._fin_de_linea)
 
     def nuevo_documento(self):
         """Nueva pestaña en blanco (boton "+", Ctrl+N o Ctrl+T)."""
@@ -2258,7 +2228,6 @@ class VentanaIDE(QMainWindow):
             QMessageBox.warning(self, "Error", f"No se pudo guardar el archivo:\n{error}")
             return False
         self.archivo_actual = ruta
-        self._fin_de_linea = self.FIN_DE_LINEA_SISTEMA
         self.editor.document().setModified(False)
         self._cargar_explorador()
         self._actualizar_titulo()
@@ -2338,9 +2307,7 @@ class VentanaIDE(QMainWindow):
         self.codigo_intermedio.clear()
         self.arbol_sintactico.clear()
         self.archivo_actual = None
-        self._fin_de_linea = self.FIN_DE_LINEA_SISTEMA
         self.explorador.clearSelection()
-        self.etiqueta_tiempo.setText("")
         self.etiqueta_errores_estado.setText("")
         self._actualizar_titulo()
         self._poner_estado("Estado: Listo para analizar.")
@@ -2348,14 +2315,6 @@ class VentanaIDE(QMainWindow):
         llenar_tabla_tokens(self.tabla_tokens, [])
         llenar_tabla_simbolos(self.tabla_simbolos, {})
         self._actualizar_titulos_pestanas(0, 0)
-
-    def _actualizar_posicion_cursor(self):
-        cursor = self.editor.textCursor()
-        linea = cursor.blockNumber() + 1
-        columna = cursor.positionInBlock() + 1
-        seleccion = len(cursor.selectedText())
-        extra = f" ({seleccion} car.)" if seleccion else ""
-        self.etiqueta_cursor.setText(f"{linea}:{columna}{extra}")
 
     # ---------------------------- Consola: salida ----------------------------
     def _escribir_linea(self, *segmentos):
@@ -2579,7 +2538,6 @@ class VentanaIDE(QMainWindow):
 
         # ----- Barra de estado -----
         # El estado (valido / invalido) ya no va aqui: se muestra en el panel ERRORES
-        self.etiqueta_tiempo.setText(f"{milisegundos:.0f} ms")
         self._poner_estado("")
         accion = "ejecutado" if ejecutar else "analizado"
         if errores:
