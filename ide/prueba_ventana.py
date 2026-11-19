@@ -1,3 +1,5 @@
+import math
+import os
 import sys
 import time
 from pathlib import Path
@@ -24,16 +26,19 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtWidgets import (
     QApplication,
+    QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QSizePolicy,
     QSplitter,
+    QTableWidgetItem,
     QTabWidget,
     QTextEdit,
     QToolBar,
@@ -141,6 +146,15 @@ QToolButton#btnEjecutar:hover {{
 QFrame#separadorBarra {{
     background-color: {BORDE};
 }}
+QToolButton#selectorBarra {{
+    color: {TEXTO};
+    font-weight: 600;
+    padding: 4px 8px;
+}}
+QLabel#ramaGit {{
+    color: {TEXTO_GRIS};
+    padding: 0px 6px;
+}}
 QLineEdit#campoBuscar {{
     background-color: {FONDO};
     color: {TEXTO};
@@ -156,6 +170,9 @@ QLineEdit#campoBuscar:focus {{
 QFrame#railLateral {{
     background-color: {FONDO_LATERAL};
     border-right: 1px solid {BORDE};
+}}
+QFrame#railLateral QToolButton:checked {{
+    background-color: #252338;
 }}
 QFrame#panelExplorador {{
     background-color: {FONDO_EXPLORADOR};
@@ -481,6 +498,95 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         p.drawLine(QPointF(8.5, 8.5), QPointF(15.5, 15.5))
         p.drawLine(QPointF(15.5, 8.5), QPointF(8.5, 15.5))
 
+    elif tipo == "nuevo":
+        ruta((6, 3), (14, 3), (19, 8), (19, 21), (6, 21), cerrar=True)
+        ruta((14, 3), (14, 8), (19, 8))
+        p.drawLine(QPointF(12.5, 11.5), QPointF(12.5, 17.5))
+        p.drawLine(QPointF(9.5, 14.5), QPointF(15.5, 14.5))
+
+    elif tipo == "pegar":
+        ruta((8.5, 5), (6, 5), (6, 21), (18, 21), (18, 5), (15.5, 5))
+        p.drawRoundedRect(QRectF(8.5, 3, 7, 4), 1, 1)
+
+    elif tipo == "cortar":
+        p.drawEllipse(QRectF(4, 14, 5.5, 5.5))
+        p.drawEllipse(QRectF(14.5, 14, 5.5, 5.5))
+        p.drawLine(QPointF(8.5, 14.5), QPointF(17, 4))
+        p.drawLine(QPointF(15.5, 14.5), QPointF(7, 4))
+
+    elif tipo == "acerca":
+        p.drawEllipse(QRectF(3.5, 3.5, 17, 17))
+        p.drawLine(QPointF(12, 11), QPointF(12, 16.5))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(color))
+        p.drawEllipse(QPointF(12, 8), 1.2, 1.2)
+
+    elif tipo == "menu":
+        for y in (7, 12, 17):
+            p.drawLine(QPointF(4, y), QPointF(20, y))
+
+    elif tipo == "mas":
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(color))
+        for y in (6, 12, 18):
+            p.drawEllipse(QPointF(12, y), 1.6, 1.6)
+
+    elif tipo == "rama":
+        p.drawEllipse(QPointF(7, 5), 2, 2)
+        p.drawEllipse(QPointF(7, 19), 2, 2)
+        p.drawEllipse(QPointF(17, 7), 2, 2)
+        p.drawLine(QPointF(7, 7), QPointF(7, 17))
+        camino = QPainterPath(QPointF(17, 9))
+        camino.cubicTo(QPointF(17, 13), QPointF(8, 12), QPointF(7, 16))
+        p.drawPath(camino)
+
+    elif tipo == "ajustes":
+        p.drawEllipse(QPointF(12, 12), 3, 3)
+        p.drawEllipse(QPointF(12, 12), 6.5, 6.5)
+        for i in range(8):
+            angulo = math.radians(i * 45)
+            p.drawLine(QPointF(12 + 6.5 * math.cos(angulo), 12 + 6.5 * math.sin(angulo)),
+                       QPointF(12 + 9 * math.cos(angulo), 12 + 9 * math.sin(angulo)))
+
+    elif tipo == "analizar":
+        p.setPen(QPen(QColor(VERDE), 1.7, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        p.drawEllipse(QRectF(4, 4, 16, 16))
+        ruta((8.5, 12.5), (11, 15), (15.8, 9.5))
+
+    elif tipo == "consola":
+        ruta((5, 8), (9, 12), (5, 16))
+        p.drawLine(QPointF(11, 17), QPointF(19, 17))
+
+    elif tipo == "intermedio":
+        p.drawLine(QPointF(4, 6), QPointF(13, 6))
+        p.drawLine(QPointF(7, 11), QPointF(20, 11))
+        p.drawLine(QPointF(7, 16), QPointF(16, 16))
+        p.drawLine(QPointF(4, 21), QPointF(11, 21))
+
+    elif tipo == "arbol":
+        p.drawRoundedRect(QRectF(9, 3, 6, 5), 1, 1)
+        p.drawRoundedRect(QRectF(3, 16, 6, 5), 1, 1)
+        p.drawRoundedRect(QRectF(15, 16, 6, 5), 1, 1)
+        ruta((12, 8), (12, 12), (6, 12), (6, 16))
+        ruta((12, 12), (18, 12), (18, 16))
+
+    elif tipo == "tokens":
+        ruta((4, 4), (12, 4), (20, 12), (12, 20), (4, 12), cerrar=True)
+        p.drawEllipse(QPointF(8.5, 8.5), 1.4, 1.4)
+
+    elif tipo == "simbolos":
+        p.drawRoundedRect(QRectF(4, 5, 16, 14), 1.5, 1.5)
+        p.drawLine(QPointF(4, 10), QPointF(20, 10))
+        p.drawLine(QPointF(10, 5), QPointF(10, 19))
+
+    elif tipo == "palabras":
+        p.drawRoundedRect(QRectF(4, 4, 16, 16), 3, 3)
+        ruta((15, 8), (9.5, 8), (9.5, 16), (15, 16))
+        p.drawLine(QPointF(9.5, 12), QPointF(14, 12))
+
+    elif tipo == "ejecutar_contorno":
+        ruta((7.5, 5), (19, 12), (7.5, 19), cerrar=True)
+
     elif tipo == "repetir":
         camino = QPainterPath()
         camino.arcMoveTo(QRectF(5, 5, 14, 14), 50)
@@ -516,6 +622,35 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
 
 def _icono_barra(tipo, color=TEXTO_SUAVE):
     return QIcon(_dibujar_icono(tipo, color))
+
+
+def _icono_insignia(texto, tamano=20):
+    """Insignia cuadrada con iniciales (como la del proyecto en PyCharm)."""
+    escala = 2
+    pixmap = QPixmap(tamano * escala, tamano * escala)
+    pixmap.setDevicePixelRatio(escala)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pixmap)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QColor(MORADO))
+    p.drawRoundedRect(QRectF(0, 0, tamano, tamano), 4, 4)
+    p.setPen(QColor("#FFFFFF"))
+    p.setFont(QFont("Segoe UI", 7, QFont.Weight.Bold))
+    p.drawText(QRectF(0, 0, tamano, tamano), Qt.AlignmentFlag.AlignCenter, texto)
+    p.end()
+    return QIcon(pixmap)
+
+
+def _rama_git():
+    """Nombre de la rama de Git del proyecto (lee .git/HEAD), o None."""
+    try:
+        cabeza = (RUTA_PROYECTO / ".git" / "HEAD").read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if cabeza.startswith("ref: refs/heads/"):
+        return cabeza[len("ref: refs/heads/"):]
+    return cabeza[:7] or None
 
 
 def _separador_vertical():
@@ -988,6 +1123,9 @@ class ResaltadorIntermedio(QSyntaxHighlighter):
 # =============================================================================
 class VentanaIDE(QMainWindow):
 
+    # Al guardar, Python escribe los saltos de linea del sistema (CRLF en Windows)
+    FIN_DE_LINEA_SISTEMA = "CRLF" if os.name == "nt" else "LF"
+
     def __init__(self):
         super().__init__()
 
@@ -997,6 +1135,7 @@ class VentanaIDE(QMainWindow):
         self.setWindowIcon(_crear_icono("logo"))
 
         self.archivo_actual = None
+        self._fin_de_linea = self.FIN_DE_LINEA_SISTEMA
         self._errores_actuales = []
         self._enlaces_consola = {}    # bloque de la consola -> (linea, columna) del error
 
@@ -1034,40 +1173,46 @@ class VentanaIDE(QMainWindow):
     def _crear_acciones(self):
         e = self.editor
 
-        # --- Franja lateral (iconos de siempre) ---
-        self.accion_nuevo = self._accion(_crear_icono("new"), "Nuevo documento", "Ctrl+N", self.nuevo_documento)
-        self.accion_explorador = self._accion(_crear_icono("open"), "Mostrar / ocultar explorador", "Ctrl+B",
+        # --- Barra izquierda (estilo PyCharm, iconos de contorno) ---
+        self.accion_nuevo = self._accion(_icono_barra("nuevo"), "Nuevo documento", "Ctrl+N", self.nuevo_documento)
+        self.accion_explorador = self._accion(_icono_barra("abrir"), "Explorador", "Ctrl+B",
                                               self.alternar_explorador)
-        self.accion_guardar = self._accion(_crear_icono("save"), "Guardar archivo", "Ctrl+S", self.guardar_archivo)
+        self.accion_explorador.setCheckable(True)
+        self.accion_explorador.setChecked(True)
+        self.accion_guardar = self._accion(_icono_barra("guardar"), "Guardar archivo", "Ctrl+S", self.guardar_archivo)
         # Copiar / pegar / cortar usan el teclado propio del editor (asi tambien
         # funcionan dentro del buscador); el boton solo actua sobre el editor.
-        self.accion_copiar = self._accion(_crear_icono("copy"), "Copiar texto seleccionado", "Ctrl+C",
+        self.accion_copiar = self._accion(_icono_barra("copiar"), "Copiar texto seleccionado", "Ctrl+C",
                                           self.editor_copiar, en_ventana=False)
-        self.accion_pegar = self._accion(_crear_icono("paste"), "Pegar texto", "Ctrl+V",
+        self.accion_pegar = self._accion(_icono_barra("pegar"), "Pegar texto", "Ctrl+V",
                                          self.editor_pegar, en_ventana=False)
-        self.accion_cortar = self._accion(_crear_icono("cut"), "Cortar texto seleccionado", "Ctrl+X",
+        self.accion_cortar = self._accion(_icono_barra("cortar"), "Cortar texto seleccionado", "Ctrl+X",
                                           self.editor_cortar, en_ventana=False)
-        self.accion_acerca = self._accion(_crear_icono("about"), "Acerca de EYKOL IDE", "F1", self.mostrar_acerca)
+        self.accion_acerca = self._accion(_icono_barra("acerca"), "Acerca de EYKOL IDE", "F1", self.mostrar_acerca)
+        self.accion_palabras = self._accion(_icono_barra("palabras"), "Palabras reservadas de EYKOL", None,
+                                            self.mostrar_palabras_reservadas)
 
         # --- Barra superior ---
         self.accion_abrir = self._accion(_icono_barra("abrir"), "Abrir archivo", "Ctrl+O", self.abrir_archivo)
         self.accion_limpiar = self._accion(_icono_barra("limpiar"), "Limpiar editor y resultados", None,
                                            self.limpiar_editor)
         self.accion_ejecutar = self._accion(_icono_barra("ejecutar"), "Ejecutar código", "F5", self.ejecutar_codigo)
+        self.accion_analizar = self._accion(_icono_barra("analizar"), "Analizar sin ejecutar", "Shift+F5",
+                                            self.analizar_codigo)
+        self.accion_guardar_como = self._accion(None, "Guardar como", "Ctrl+Shift+S", self.guardar_como)
+        self.accion_comentar = self._accion(None, "Comentar / descomentar", "Ctrl+/", e.alternar_comentario)
+        self.accion_buscar = self._accion(None, "Buscar", "Ctrl+F", self._enfocar_buscador)
+        self.accion_consola = self._accion(None, "Mostrar / ocultar consola", "Ctrl+J", self.alternar_panel)
+        self.accion_acercar = self._accion(None, "Aumentar zoom", "Ctrl++", e.acercar)
+        self.accion_alejar = self._accion(None, "Reducir zoom", "Ctrl+-", e.alejar)
+        self.accion_zoom_base = self._accion(None, "Restablecer zoom", "Ctrl+0", e.restablecer_zoom)
+        self.accion_salir = self._accion(None, "Salir", "Ctrl+Q", self.close)
 
         # --- Solo atajos de teclado ---
-        self._accion(None, "Guardar como", "Ctrl+Shift+S", self.guardar_como)
         self._accion(None, "Ejecutar código", "Ctrl+Return", self.ejecutar_codigo)
-        self._accion(None, "Comentar / descomentar", "Ctrl+/", e.alternar_comentario)
-        self._accion(None, "Buscar", "Ctrl+F", self._enfocar_buscador)
         self._accion(None, "Buscar siguiente", "F3", self.buscar_texto)
         self._accion(None, "Buscar anterior", "Shift+F3", lambda: self.buscar_texto(atras=True))
-        self._accion(None, "Mostrar / ocultar consola", "Ctrl+J", self.alternar_panel)
-        self._accion(None, "Aumentar zoom", "Ctrl++", e.acercar)
         self._accion(None, "Aumentar zoom", "Ctrl+=", e.acercar)
-        self._accion(None, "Reducir zoom", "Ctrl+-", e.alejar)
-        self._accion(None, "Restablecer zoom", "Ctrl+0", e.restablecer_zoom)
-        self._accion(None, "Salir", "Ctrl+Q", self.close)
 
     # ---------------------------- Barra superior -----------------------------
     def _crear_barra_superior(self):
@@ -1079,7 +1224,32 @@ class VentanaIDE(QMainWindow):
         barra.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.addToolBar(barra)
 
+        # ----- Izquierda: logo, menu principal, proyecto y rama (como PyCharm) -----
         barra.addWidget(_LogoEYKOL())
+        barra.addWidget(self._boton_menu("menu", "Menú principal", self._crear_menu_principal()))
+
+        nombre_proyecto = RUTA_PROYECTO.name
+        palabras = [p for p in nombre_proyecto.replace("-", "_").split("_") if p and p[0].isalpha()]
+        iniciales = ("".join(p[0] for p in palabras)[:2] or "EY").upper()
+        menu_proyecto = QMenu(self)
+        menu_proyecto.addAction(self.accion_abrir)
+        menu_proyecto.addAction("Abrir carpeta de ejemplos", self._abrir_carpeta_ejemplos)
+        menu_proyecto.addAction("Recargar explorador", self._cargar_explorador)
+        barra.addWidget(self._selector(f"{nombre_proyecto}  ▾", _icono_insignia(iniciales),
+                                       "Proyecto", menu_proyecto))
+
+        rama = _rama_git()
+        if rama:
+            etiqueta_rama = QLabel()
+            etiqueta_rama.setObjectName("ramaGit")
+            etiqueta_rama.setText(rama)
+            etiqueta_rama.setToolTip(f"Rama de Git actual: {rama}")
+            icono_rama = QLabel()
+            icono_rama.setPixmap(_dibujar_icono("rama", TEXTO_GRIS, 16))
+            icono_rama.setStyleSheet("padding-left: 6px;")
+            barra.addWidget(icono_rama)
+            barra.addWidget(etiqueta_rama)
+
         barra.addWidget(_espaciador())
 
         # Buscador al centro
@@ -1113,6 +1283,12 @@ class VentanaIDE(QMainWindow):
 
         barra.addWidget(_separador_vertical())
 
+        # ----- Configuracion de ejecucion: "Archivo actual" + ejecutar / analizar -----
+        self.menu_ejecucion = QMenu(self)
+        self.menu_ejecucion.aboutToShow.connect(self._llenar_menu_ejecucion)
+        barra.addWidget(self._selector("Archivo actual  ▾", _icono_barra("archivo", TEXTO_GRIS),
+                                       "Qué se ejecuta: el archivo abierto o un ejemplo", self.menu_ejecucion))
+
         self.boton_ejecutar = QToolButton()
         self.boton_ejecutar.setObjectName("btnEjecutar")
         self.boton_ejecutar.setDefaultAction(self.accion_ejecutar)
@@ -1120,6 +1296,118 @@ class VentanaIDE(QMainWindow):
         self.boton_ejecutar.setFixedSize(34, 32)
         self.boton_ejecutar.setCursor(Qt.CursorShape.PointingHandCursor)
         barra.addWidget(self.boton_ejecutar)
+
+        boton_analizar = QToolButton()
+        boton_analizar.setDefaultAction(self.accion_analizar)
+        boton_analizar.setIconSize(QSize(18, 18))
+        boton_analizar.setFixedSize(32, 32)
+        boton_analizar.setCursor(Qt.CursorShape.PointingHandCursor)
+        barra.addWidget(boton_analizar)
+
+        menu_mas = QMenu(self)
+        menu_mas.addAction(self.accion_guardar_como)
+        menu_mas.addAction("Limpiar consola", self._mensaje_inicial_consola)
+        menu_mas.addSeparator()
+        menu_mas.addAction(self.accion_palabras)
+        menu_mas.addAction(self.accion_acerca)
+        barra.addWidget(self._boton_menu("mas", "Más acciones", menu_mas))
+
+        barra.addWidget(_separador_vertical())
+
+        # ----- Derecha: ajustes -----
+        menu_ajustes = QMenu(self)
+        menu_ajustes.addAction(self.accion_acercar)
+        menu_ajustes.addAction(self.accion_alejar)
+        menu_ajustes.addAction(self.accion_zoom_base)
+        menu_ajustes.addSeparator()
+        menu_ajustes.addAction(self.accion_explorador)
+        menu_ajustes.addAction(self.accion_consola)
+        barra.addWidget(self._boton_menu("ajustes", "Ajustes", menu_ajustes))
+
+    def _boton_menu(self, icono, tooltip, menu):
+        """Boton de icono que abre un menu (☰, ⋮, ⚙)."""
+        boton = QToolButton()
+        boton.setIcon(_icono_barra(icono))
+        boton.setIconSize(QSize(18, 18))
+        boton.setFixedSize(32, 32)
+        boton.setToolTip(tooltip)
+        boton.setCursor(Qt.CursorShape.PointingHandCursor)
+        boton.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        boton.setMenu(menu)
+        return boton
+
+    def _selector(self, texto, icono, tooltip, menu):
+        """Selector con texto e icono (proyecto, "Archivo actual"), como en PyCharm."""
+        boton = QToolButton()
+        boton.setObjectName("selectorBarra")
+        boton.setText(texto)
+        boton.setIcon(icono)
+        boton.setIconSize(QSize(18, 18))
+        boton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        boton.setToolTip(tooltip)
+        boton.setCursor(Qt.CursorShape.PointingHandCursor)
+        boton.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        boton.setMenu(menu)
+        return boton
+
+    def _crear_menu_principal(self):
+        """Menu ☰ con todas las funciones del IDE agrupadas."""
+        menu = QMenu(self)
+        archivo = menu.addMenu("Archivo")
+        for accion in (self.accion_nuevo, self.accion_abrir, self.accion_guardar, self.accion_guardar_como):
+            archivo.addAction(accion)
+        archivo.addSeparator()
+        archivo.addAction(self.accion_salir)
+
+        editar = menu.addMenu("Editar")
+        editar.addAction("Deshacer", self.editor.undo)
+        editar.addAction("Rehacer", self.editor.redo)
+        editar.addSeparator()
+        for accion in (self.accion_cortar, self.accion_copiar, self.accion_pegar):
+            editar.addAction(accion)
+        editar.addSeparator()
+        editar.addAction(self.accion_comentar)
+        editar.addAction(self.accion_buscar)
+
+        ejecutar = menu.addMenu("Ejecutar")
+        ejecutar.addAction(self.accion_ejecutar)
+        ejecutar.addAction(self.accion_analizar)
+
+        ver = menu.addMenu("Ver")
+        ver.addAction(self.accion_explorador)
+        ver.addAction(self.accion_consola)
+        ver.addSeparator()
+        for accion in (self.accion_acercar, self.accion_alejar, self.accion_zoom_base):
+            ver.addAction(accion)
+
+        ayuda = menu.addMenu("Ayuda")
+        ayuda.addAction(self.accion_palabras)
+        ayuda.addAction(self.accion_acerca)
+        return menu
+
+    def _llenar_menu_ejecucion(self):
+        """Opciones de "Archivo actual": el archivo abierto o cualquier ejemplo."""
+        self.menu_ejecucion.clear()
+        self.menu_ejecucion.addAction(_icono_barra("ejecutar"), f"Archivo actual ({self._nombre_archivo()})",
+                                      self.ejecutar_codigo)
+        if RUTA_EJEMPLOS.exists():
+            self.menu_ejecucion.addSeparator()
+            for archivo in sorted(RUTA_EJEMPLOS.glob("*.txt")):
+                self.menu_ejecucion.addAction(_icono_barra("archivo", TEXTO_GRIS), archivo.name,
+                                              lambda ruta=archivo: self._ejecutar_ejemplo(ruta))
+
+    def _ejecutar_ejemplo(self, ruta):
+        if self.archivo_actual != ruta:
+            if not self._confirmar_descartar():
+                return
+            self._cargar_archivo(ruta)
+        self.ejecutar_codigo()
+
+    def _abrir_carpeta_ejemplos(self):
+        try:
+            os.startfile(str(RUTA_EJEMPLOS))     # Windows
+        except (AttributeError, OSError) as error:
+            QMessageBox.information(self, "Carpeta de ejemplos", f"{RUTA_EJEMPLOS}\n\n{error}")
 
     def eventFilter(self, objeto, evento):
         # Esc en el buscador regresa al editor
@@ -1171,9 +1459,21 @@ class VentanaIDE(QMainWindow):
         self.divisor_h.setSizes([235, 965])
 
         layout_principal.addWidget(self.divisor_h)
+        self._sincronizar_herramientas()
+
+    # Herramientas de EYKOL de la parte baja de la barra izquierda:
+    # (icono, nombre, pestaña del panel inferior que abren)
+    HERRAMIENTAS_EYKOL = (
+        ("consola", "Consola (Terminal)", 0),
+        ("intermedio", "Código intermedio", 1),
+        ("arbol", "Árbol sintáctico", 2),
+        ("tokens", "Tokens", 3),
+        ("simbolos", "Tabla de símbolos", 4),
+    )
 
     def _crear_rail(self):
-        """Franja estrecha izquierda con botones de herramientas (igual que antes)."""
+        """Barra izquierda estilo PyCharm: arriba archivo y edicion, abajo las
+        herramientas de EYKOL (en lugar de las de Python)."""
         rail = QFrame()
         rail.setObjectName("railLateral")
         rail.setFixedWidth(44)
@@ -1181,25 +1481,88 @@ class VentanaIDE(QMainWindow):
         layout_rail.setContentsMargins(6, 10, 6, 10)
         layout_rail.setSpacing(6)
 
-        for grupo in (
-            (self.accion_nuevo, self.accion_explorador, self.accion_guardar),
-            (self.accion_copiar, self.accion_pegar, self.accion_cortar),
-            (self.accion_acerca,),
-        ):
-            if layout_rail.count() > 0:
-                separador = QFrame()
-                separador.setFixedHeight(1)
-                separador.setStyleSheet(f"background-color: {BORDE};")
-                layout_rail.addWidget(separador)
-            for accion in grupo:
-                boton = QToolButton(rail)
-                boton.setDefaultAction(accion)
-                boton.setFixedSize(32, 32)
-                boton.setIconSize(QSize(18, 18))
-                layout_rail.addWidget(boton)
+        def separador():
+            linea = QFrame()
+            linea.setFixedHeight(1)
+            linea.setStyleSheet(f"background-color: {BORDE};")
+            layout_rail.addWidget(linea)
+
+        def boton_de(accion):
+            boton = QToolButton(rail)
+            boton.setDefaultAction(accion)
+            boton.setFixedSize(32, 32)
+            boton.setIconSize(QSize(18, 18))
+            boton.setCursor(Qt.CursorShape.PointingHandCursor)
+            layout_rail.addWidget(boton)
+            return boton
+
+        # ----- Arriba: archivo y edicion -----
+        for accion in (self.accion_explorador, self.accion_nuevo, self.accion_guardar):
+            boton_de(accion)
+        separador()
+        for accion in (self.accion_copiar, self.accion_pegar, self.accion_cortar):
+            boton_de(accion)
 
         layout_rail.addStretch()
+
+        # ----- Abajo: herramientas de EYKOL (abren su pestaña del panel inferior) -----
+        self.botones_herramientas = []
+        for icono, nombre, indice in self.HERRAMIENTAS_EYKOL:
+            accion = QAction(_icono_barra(icono), nombre, self)
+            accion.setToolTip(nombre)
+            accion.setCheckable(True)
+            accion.triggered.connect(lambda _marcado, i=indice: self._mostrar_herramienta(i))
+            self.botones_herramientas.append((boton_de(accion), indice))
+        separador()
+        boton_de(self.accion_palabras)
+        boton_de(self.accion_acerca)
         return rail
+
+    def _mostrar_herramienta(self, indice):
+        """Como en PyCharm: si la herramienta ya esta abierta se oculta, si no se abre."""
+        if not self.pestanas.isHidden() and self.pestanas.currentIndex() == indice:
+            self.pestanas.setVisible(False)
+        else:
+            self.pestanas.setVisible(True)
+            self.pestanas.setCurrentIndex(indice)
+        self._sincronizar_herramientas()
+
+    def _sincronizar_herramientas(self, *_):
+        visible = not self.pestanas.isHidden()
+        actual = self.pestanas.currentIndex()
+        for boton, indice in getattr(self, "botones_herramientas", []):
+            boton.defaultAction().setChecked(visible and indice == actual)
+
+    def mostrar_palabras_reservadas(self):
+        """Ventana con las palabras reservadas de EYKOL. Doble clic: la inserta en el editor."""
+        from compilador.lexico import reservadas
+        significados = {
+            "ent": "Tipo entero", "deci": "Tipo decimal", "txt": "Tipo texto", "boli": "Tipo booleano",
+            "si": "Condición (if)", "osi": "Si no (else)", "durante": "Ciclo mientras (while)",
+            "repetir": "Ciclo para (for)", "impt": "Imprimir en la consola", "vrd": "Valor verdadero",
+            "fals": "Valor falso", "raiz": "Raíz cuadrada",
+        }
+        dialogo = QDialog(self)
+        dialogo.setWindowTitle("Palabras reservadas de EYKOL")
+        dialogo.resize(460, 420)
+        layout = QVBoxLayout(dialogo)
+        layout.setContentsMargins(0, 0, 0, 0)
+        tabla = crear_tabla_tokens()          # misma tabla oscura que el panel de tokens
+        tabla.setHorizontalHeaderLabels(["Palabra", "Token", "Significado"])
+        tabla.setRowCount(len(reservadas))
+        for fila, (palabra, token) in enumerate(reservadas.items()):
+            for columna, valor in enumerate((palabra, token, significados.get(palabra, ""))):
+                tabla.setItem(fila, columna, QTableWidgetItem(valor))
+        tabla.setToolTip("Doble clic para insertar la palabra en el editor")
+
+        def insertar(fila, _columna):
+            self.editor.insertPlainText(tabla.item(fila, 0).text())
+            self.editor.setFocus()
+            dialogo.accept()
+
+        tabla.cellDoubleClicked.connect(insertar)
+        layout.addWidget(tabla)
+        dialogo.exec()
 
     def _crear_explorador(self):
         """Panel izquierdo: Explorador (igual que antes)."""
@@ -1295,6 +1658,7 @@ class VentanaIDE(QMainWindow):
 
         self.tabla_simbolos = crear_tabla_simbolos()
         self.pestanas.addTab(self.tabla_simbolos, "TABLA DE SÍMBOLOS")
+        self.pestanas.currentChanged.connect(self._sincronizar_herramientas)
         return self.pestanas
 
     def _crear_terminal(self):
@@ -1378,18 +1742,53 @@ class VentanaIDE(QMainWindow):
         self._poner_estado("Salida de la consola copiada.", TEXTO)
 
     def _crear_barra_estado(self):
+        """Barra de estado estilo PyCharm: ruta del archivo a la izquierda y
+        datos del editor a la derecha."""
         barra = self.statusBar()
+
+        # ----- Izquierda: Equipo_5_EYKOL › ejemplos › archivo.txt  + mensajes -----
+        self.etiqueta_migas = QLabel()
+        self.etiqueta_migas.setTextFormat(Qt.TextFormat.RichText)
+        self.etiqueta_migas.setStyleSheet("padding-left: 10px;")
+        barra.addWidget(self.etiqueta_migas)
         self.etiqueta_estado = QLabel()
         barra.addWidget(self.etiqueta_estado)
         self._poner_estado("Estado: Listo para analizar.")
 
+        # ----- Derecha: errores, tiempo, Ln:Col, fin de linea, codificacion... -----
         self.etiqueta_errores_estado = QLabel()
         self.etiqueta_tiempo = QLabel("")
-        self.etiqueta_cursor = QLabel("Ln 1, Col 1")
-        etiqueta_lenguaje = QLabel("UTF-8   EYKOL")
-        for etiqueta in (self.etiqueta_errores_estado, self.etiqueta_tiempo, self.etiqueta_cursor, etiqueta_lenguaje):
+        self.etiqueta_cursor = QLabel("1:1")
+        self.etiqueta_cursor.setToolTip("Línea:columna del cursor")
+        self.etiqueta_fin_linea = QLabel(self._fin_de_linea)
+        self.etiqueta_fin_linea.setToolTip("Fin de línea del archivo")
+        etiqueta_codificacion = QLabel("UTF-8")
+        etiqueta_codificacion.setToolTip("Codificación del archivo")
+        etiqueta_sangria = QLabel("4 espacios")
+        etiqueta_sangria.setToolTip("Sangría: Tab inserta 4 espacios")
+        etiqueta_lenguaje = QLabel("EYKOL")
+        etiqueta_lenguaje.setToolTip("Lenguaje del archivo")
+        for etiqueta in (self.etiqueta_errores_estado, self.etiqueta_tiempo, self.etiqueta_cursor,
+                         self.etiqueta_fin_linea, etiqueta_codificacion, etiqueta_sangria, etiqueta_lenguaje):
             etiqueta.setStyleSheet("padding: 0px 10px;")
             barra.addPermanentWidget(etiqueta)
+
+    def _actualizar_migas(self):
+        """Ruta del archivo actual en la barra de estado: proyecto › carpeta › archivo."""
+        if self.archivo_actual:
+            try:
+                partes = list(self.archivo_actual.relative_to(RUTA_PROYECTO).parts)
+            except ValueError:
+                partes = [self.archivo_actual.parent.name, self.archivo_actual.name]
+        else:
+            partes = ["Sin título.txt"]
+        partes = [RUTA_PROYECTO.name] + partes
+        separador = f' <span style="color:{TEXTO_APAGADO}">›</span> '
+        html = separador.join(
+            f'<span style="color:{TEXTO if i == len(partes) - 1 else TEXTO_GRIS}">{parte}</span>'
+            for i, parte in enumerate(partes)
+        )
+        self.etiqueta_migas.setText(html)
 
     def _poner_estado(self, texto, color=TEXTO_GRIS, negrita=False):
         peso = "bold" if negrita else "normal"
@@ -1425,9 +1824,11 @@ class VentanaIDE(QMainWindow):
     def alternar_explorador(self):
         visible = not self.panel_explorador.isVisible()
         self.panel_explorador.setVisible(visible)
+        self.accion_explorador.setChecked(visible)
 
     def alternar_panel(self):
-        self.pestanas.setVisible(not self.pestanas.isVisible())
+        self.pestanas.setVisible(self.pestanas.isHidden())
+        self._sincronizar_herramientas()
 
     def _al_seleccionar_archivo(self, item, _columna):
         ruta = item.data(0, Qt.ItemDataRole.UserRole)
@@ -1446,7 +1847,8 @@ class VentanaIDE(QMainWindow):
 
     def _cargar_archivo(self, archivo):
         try:
-            contenido = archivo.read_text(encoding="utf-8-sig")
+            datos = archivo.read_bytes()
+            contenido = datos.decode("utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
         except (OSError, UnicodeDecodeError) as error:
             QMessageBox.warning(self, "Error", f"No se pudo abrir el archivo:\n{error}")
             return
@@ -1454,6 +1856,7 @@ class VentanaIDE(QMainWindow):
         self.editor.setPlainText(contenido)
         self.editor.document().setModified(False)
         self.archivo_actual = archivo
+        self._fin_de_linea = "CRLF" if b"\r\n" in datos else ("LF" if b"\n" in datos else self.FIN_DE_LINEA_SISTEMA)
         self._seleccionar_en_explorador(archivo)
         self._actualizar_titulo()
         self._poner_estado(f"Archivo abierto: {archivo.name}")
@@ -1493,6 +1896,9 @@ class VentanaIDE(QMainWindow):
         else:
             self.etiqueta_ruta.setText("")
         self.setWindowTitle(f"{'● ' if modificado else ''}{nombre} — EYKOL IDE")
+        if hasattr(self, "etiqueta_migas"):
+            self._actualizar_migas()
+            self.etiqueta_fin_linea.setText(self._fin_de_linea)
 
     def nuevo_documento(self):
         if not self._confirmar_descartar():
@@ -1500,6 +1906,7 @@ class VentanaIDE(QMainWindow):
         self.editor.clear()
         self.editor.document().setModified(False)
         self.archivo_actual = None
+        self._fin_de_linea = self.FIN_DE_LINEA_SISTEMA
         self.explorador.clearSelection()
         self._actualizar_titulo()
         self._poner_estado("Estado: Listo para analizar.")
@@ -1537,6 +1944,7 @@ class VentanaIDE(QMainWindow):
             QMessageBox.warning(self, "Error", f"No se pudo guardar el archivo:\n{error}")
             return False
         self.archivo_actual = ruta
+        self._fin_de_linea = self.FIN_DE_LINEA_SISTEMA
         self.editor.document().setModified(False)
         self._cargar_explorador()
         self._actualizar_titulo()
@@ -1611,6 +2019,7 @@ class VentanaIDE(QMainWindow):
         self.codigo_intermedio.clear()
         self.arbol_sintactico.clear()
         self.archivo_actual = None
+        self._fin_de_linea = self.FIN_DE_LINEA_SISTEMA
         self.explorador.clearSelection()
         self.etiqueta_tiempo.setText("")
         self.etiqueta_errores_estado.setText("")
@@ -1626,8 +2035,8 @@ class VentanaIDE(QMainWindow):
         linea = cursor.blockNumber() + 1
         columna = cursor.positionInBlock() + 1
         seleccion = len(cursor.selectedText())
-        extra = f"  ({seleccion} selecc.)" if seleccion else ""
-        self.etiqueta_cursor.setText(f"Ln {linea}, Col {columna}{extra}")
+        extra = f" ({seleccion} car.)" if seleccion else ""
+        self.etiqueta_cursor.setText(f"{linea}:{columna}{extra}")
 
     # ---------------------------- Consola: salida ----------------------------
     def _escribir_linea(self, *segmentos):
@@ -1768,17 +2177,26 @@ class VentanaIDE(QMainWindow):
 
     # ---------------------------- Compilacion --------------------------------
     def ejecutar_codigo(self):
+        self._procesar_codigo(ejecutar=True)
+
+    def analizar_codigo(self):
+        """Revisa léxico, sintaxis y semántica y genera el código intermedio,
+        pero sin ejecutar el programa (en lugar del "Depurar" de PyCharm)."""
+        self._procesar_codigo(ejecutar=False)
+
+    def _procesar_codigo(self, ejecutar):
         codigo = self.editor.toPlainText()
         if not codigo.strip():
             self._poner_estado("No hay código para ejecutar.", AMARILLO)
             return
 
+        comando = self._comando_terminal() if ejecutar else f"analizar {self._comando_terminal()[len('python main.py '):]}"
         inicio = time.perf_counter()
         try:
-            resultado = compilar(codigo)
+            resultado = compilar(codigo, ejecutar=ejecutar)
         except Exception as error:  # fallo interno: se muestra en lugar de cerrar el IDE
             self._limpiar_salida()
-            self._escribir_linea(("> ", MORADO, True), (self._comando_terminal(), TEXTO_APAGADO))
+            self._escribir_linea(("> ", MORADO, True), (comando, TEXTO_APAGADO))
             self._escribir_linea((f"✗ Error interno del compilador: {error}", ROJO, True))
             self._poner_estado("Error interno del compilador", ROJO, True)
             return
@@ -1788,10 +2206,12 @@ class VentanaIDE(QMainWindow):
 
         # ----- Consola: comando, salida, errores y estado (todo en una) -----
         self._limpiar_salida()
-        self._escribir_linea(("> ", MORADO, True), (self._comando_terminal(), TEXTO_APAGADO))
+        self._escribir_linea(("> ", MORADO, True), (comando, TEXTO_APAGADO))
+        if not ejecutar:
+            self._escribir_linea(("(solo análisis: el programa no se ejecutó)", TEXTO_APAGADO))
         for linea in resultado.salida:
             self._escribir_linea((str(linea), TEXTO))
-        if not resultado.salida and not errores:
+        if ejecutar and not resultado.salida and not errores:
             self._escribir_linea(("(el programa no mostró nada)", TEXTO_APAGADO))
 
         self._escribir_errores(errores)
@@ -1826,7 +2246,7 @@ class VentanaIDE(QMainWindow):
         if errores:
             self.etiqueta_errores_estado.setStyleSheet(f"padding: 0px 10px; color: {ROJO};")
             self.etiqueta_errores_estado.setText(f"✗ {len(errores)} error(es)")
-            if not self.pestanas.isVisible():
+            if self.pestanas.isHidden():
                 self.alternar_panel()
             self.pestanas.setCurrentIndex(0)
         else:
