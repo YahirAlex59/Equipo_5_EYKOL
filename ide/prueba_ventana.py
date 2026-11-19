@@ -1380,7 +1380,7 @@ class VentanaIDE(QMainWindow):
         # ----- Izquierda: logo, menu principal, proyecto y rama (como PyCharm) -----
         barra.addWidget(_LogoEYKOL())
 
-        # ☰ Como en PyCharm: despliega la barra de menus en la misma linea
+        # ☰ despliega la barra de menus en la misma linea
         self.boton_menu = QToolButton()
         self.boton_menu.setObjectName("botonMenu")
         self.boton_menu.setIcon(_icono_barra("menu"))
