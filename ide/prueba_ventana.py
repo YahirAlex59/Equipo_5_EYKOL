@@ -1705,7 +1705,7 @@ class VentanaIDE(QMainWindow):
 
         layout_rail.addStretch()
 
-        # ----- Abajo: herramientas de EYKOL (abren su pestaña del panel inferior) -----
+        # ----- Abajo: herramientas de EYKOL  -----
         self.botones_herramientas = []
         for icono, nombre, indice in self.HERRAMIENTAS_EYKOL:
             accion = QAction(_icono_barra(icono), nombre, self)
