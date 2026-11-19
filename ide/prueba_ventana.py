@@ -177,6 +177,13 @@ QFrame#railLateral {{
 QFrame#railLateral QToolButton:checked {{
     background-color: #252338;
 }}
+QFrame#railDerecho {{
+    background-color: {FONDO_LATERAL};
+    border-left: 1px solid {BORDE};
+}}
+QFrame#railDerecho QToolButton:checked {{
+    background-color: #252338;
+}}
 QFrame#panelExplorador {{
     background-color: {FONDO_EXPLORADOR};
     border: none;
@@ -210,34 +217,34 @@ QTreeWidget::item:selected {{
 
 /* ---------- Pestana del editor ---------- */
 QFrame#barraTabEditor {{
-    background-color: {FONDO_BARRA};
+    background-color: {FONDO};
     border-bottom: 1px solid {BORDE};
 }}
 QTabBar#pestanasEditor {{
     background: transparent;
 }}
+/* Pestañas tipo PyCharm: recuadros redondeados, la activa con fondo y borde */
 QTabBar#pestanasEditor::tab {{
-    background-color: {FONDO_BARRA};
+    background-color: transparent;
     color: {TEXTO_GRIS};
     font-size: 13px;
-    height: 37px;
-    padding: 0px 4px 0px 12px;
-    margin: 0px;
-    border: none;
-    border-right: 1px solid {BORDE};
-    border-top: 2px solid transparent;
+    height: 28px;
+    padding: 0px 4px 0px 10px;
+    margin: 0px 3px 0px 0px;
+    border: 1px solid transparent;
+    border-radius: 7px;
 }}
 QTabBar#pestanasEditor::tab:selected {{
-    background-color: {FONDO};
+    background-color: #25273A;
     color: #FFFFFF;
-    border-top: 2px solid {MORADO};
+    border: 1px solid #32354E;
 }}
 QTabBar#pestanasEditor::tab:hover:!selected {{
     background-color: #1F2130;
     color: {TEXTO};
 }}
-QTabBar#pestanasEditor QToolButton {{
-    background-color: {FONDO_BARRA};
+QTabBar#pestanasEditor > QToolButton {{
+    background-color: {FONDO};
     border: none;
 }}
 QWidget#ladoPestana, QWidget#ladoPestana QLabel {{
@@ -254,6 +261,7 @@ QToolButton#btnNuevaPestana:hover {{
     color: #FFFFFF;
 }}
 QToolButton#btnCerrarTab {{
+    background: transparent;
     color: {TEXTO_APAGADO};
     font-size: 14px;
     border-radius: 4px;
@@ -278,8 +286,8 @@ QPlainTextEdit#codigoIntermedio {{
 }}
 QPlainTextEdit#salidaTerminal {{
     font-family: {FUENTE_MONO};
-    font-size: 10pt;
-    padding: 10px 16px;
+    font-size: 11pt;
+    padding: 12px 20px;
 }}
 
 /* ---------- Barras de desplazamiento delgadas (mismos colores del tema) ---------- */
@@ -484,6 +492,25 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         p.drawLine(QPointF(9, 16), QPointF(15, 16))
 
 
+    elif tipo == "campana":
+        camino = QPainterPath(QPointF(6, 16.5))
+        camino.lineTo(QPointF(6, 11))
+        camino.cubicTo(QPointF(6, 7.2), QPointF(8.7, 4.8), QPointF(12, 4.8))
+        camino.cubicTo(QPointF(15.3, 4.8), QPointF(18, 7.2), QPointF(18, 11))
+        camino.lineTo(QPointF(18, 16.5))
+        camino.lineTo(QPointF(19.5, 18))
+        camino.lineTo(QPointF(4.5, 18))
+        camino.closeSubpath()
+        p.drawPath(camino)
+        p.drawLine(QPointF(10, 20.5), QPointF(14, 20.5))
+
+    elif tipo == "datos":
+        p.drawEllipse(QRectF(5, 3.5, 14, 5))
+        p.drawLine(QPointF(5, 6), QPointF(5, 18))
+        p.drawLine(QPointF(19, 6), QPointF(19, 18))
+        p.drawArc(QRectF(5, 9.5, 14, 5), 180 * 16, 180 * 16)
+        p.drawArc(QRectF(5, 15.5, 14, 5), 180 * 16, 180 * 16)
+
     elif tipo == "nuevo":
         ruta((6, 3), (14, 3), (19, 8), (19, 21), (6, 21), cerrar=True)
         ruta((14, 3), (14, 8), (19, 8))
@@ -587,6 +614,33 @@ def _icono_barra(tipo, color=TEXTO_SUAVE):
     return QIcon(_dibujar_icono(tipo, color))
 
 
+def _icono_campana(con_punto):
+    """Campana de notificaciones; con punto rojo si hay notificaciones nuevas."""
+    pixmap = _dibujar_icono("campana")
+    if con_punto:
+        p = QPainter(pixmap)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(ROJO))
+        p.drawEllipse(QPointF(18, 6), 3.6, 3.6)
+        p.end()
+    return QIcon(pixmap)
+
+
+def _icono_punto(color):
+    """Punto de color para las entradas del menu de notificaciones."""
+    pixmap = QPixmap(24, 24)
+    pixmap.setDevicePixelRatio(2)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pixmap)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QColor(color))
+    p.drawEllipse(QPointF(6, 6), 3, 3)
+    p.end()
+    return QIcon(pixmap)
+
+
 def _icono_insignia(texto, tamano=20):
     """Insignia cuadrada con iniciales (como la del proyecto en PyCharm)."""
     escala = 2
@@ -636,14 +690,17 @@ class _LogoEYKOL(QWidget):
         super().__init__()
         self.fuente = QFont("Segoe UI", 12, QFont.Weight.Bold)
         self.fuente.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 4)
-        self.setFixedSize(96, 30)
+        self.setFixedSize(124, 32)
         self.setToolTip("EYKOL IDE")
 
     def paintEvent(self, _event):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         camino = QPainterPath()
-        camino.addText(QPointF(4, 21), self.fuente, "EYKOL")
+        camino.addText(QPointF(0, 0), self.fuente, "EYKOL")
+        # Centra el texto dentro del espacio del logo (horizontal y vertical)
+        caja = camino.boundingRect()
+        camino.translate(self.width() / 2 - caja.center().x(), self.height() / 2 - caja.center().y())
         caja = camino.boundingRect()
         degradado = QLinearGradient(caja.topLeft(), caja.topRight())
         degradado.setColorAt(0, QColor(MORADO))
@@ -1142,8 +1199,8 @@ class VentanaIDE(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.resize(1240, 800)
         self.setMinimumSize(900, 560)
+        self._centrar_en_pantalla()
         self.setStyleSheet(ESTILO_OSCURO)
         self.setWindowIcon(_crear_icono("logo"))
 
@@ -1161,6 +1218,21 @@ class VentanaIDE(QMainWindow):
         self._mensaje_inicial_consola()
         self._actualizar_titulo()
         self._abrir_archivo_inicial()
+
+    def _centrar_en_pantalla(self):
+        """Tamaño proporcional a la pantalla y ventana centrada (no pegada arriba)."""
+        pantalla = QApplication.primaryScreen()
+        if pantalla is None:
+            self.resize(1240, 800)
+            return
+        area = pantalla.availableGeometry()
+        ancho = min(1400, int(area.width() * 0.88))
+        alto = min(880, int(area.height() * 0.88))
+        self.resize(ancho, alto)
+        # Se descuenta la barra de titulo de Windows (~32 px) para que quede centrada a la vista
+        x = area.x() + (area.width() - ancho) // 2
+        y = area.y() + max(0, (area.height() - alto - 32) // 2)
+        self.move(x, y)
 
     # ---------------------------- Pestaña actual -----------------------------
     # El resto del IDE usa self.editor / self.archivo_actual como antes; ahora
@@ -1511,12 +1583,13 @@ class VentanaIDE(QMainWindow):
         self.divisor_v.addWidget(self.divisor_h)
         self.isla_consola = _Isla(self._crear_panel_inferior())
         self.divisor_v.addWidget(self.isla_consola)
-        self.divisor_v.setStretchFactor(0, 5)
-        self.divisor_v.setStretchFactor(1, 4)
-        self.divisor_v.setSizes([420, 380])     # consola con mas espacio
+        self.divisor_v.setStretchFactor(0, 3)
+        self.divisor_v.setStretchFactor(1, 2)
+        self.divisor_v.setSizes([540, 360])     # 60% editor, 40% consola
         layout_islas.addWidget(self.divisor_v)
 
         layout_principal.addWidget(zona_islas)
+        layout_principal.addWidget(self._crear_rail_derecho())
         self._sincronizar_herramientas()
 
     # Herramientas de EYKOL de la parte baja de la barra izquierda:
@@ -1575,6 +1648,72 @@ class VentanaIDE(QMainWindow):
         boton_de(self.accion_palabras)
         boton_de(self.accion_acerca)
         return rail
+
+    def _crear_rail_derecho(self):
+        """Barra derecha como la de PyCharm: notificaciones y datos del programa."""
+        rail = QFrame()
+        rail.setObjectName("railDerecho")
+        rail.setFixedWidth(44)
+        layout = QVBoxLayout(rail)
+        layout.setContentsMargins(6, 10, 6, 10)
+        layout.setSpacing(6)
+
+        # Notificaciones (campana con punto rojo cuando hay algo nuevo)
+        self._notificaciones = []      # [(hora, texto, color)], la mas reciente primero
+        self.boton_notificaciones = QToolButton(rail)
+        self.boton_notificaciones.setIcon(_icono_campana(False))
+        self.boton_notificaciones.setIconSize(QSize(18, 18))
+        self.boton_notificaciones.setFixedSize(32, 32)
+        self.boton_notificaciones.setToolTip("Notificaciones")
+        self.boton_notificaciones.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.boton_notificaciones.clicked.connect(self._mostrar_notificaciones)
+        layout.addWidget(self.boton_notificaciones)
+
+        # Datos: variables del programa (tabla de simbolos), como "Database" en PyCharm
+        accion_datos = QAction(_icono_barra("datos"), "Variables del programa (tabla de símbolos)", self)
+        accion_datos.setToolTip("Variables del programa (tabla de símbolos)")
+        accion_datos.setCheckable(True)
+        accion_datos.triggered.connect(lambda _marcado: self._mostrar_herramienta(4))
+        boton_datos = QToolButton(rail)
+        boton_datos.setDefaultAction(accion_datos)
+        boton_datos.setIconSize(QSize(18, 18))
+        boton_datos.setFixedSize(32, 32)
+        boton_datos.setCursor(Qt.CursorShape.PointingHandCursor)
+        layout.addWidget(boton_datos)
+        self.botones_herramientas.append((boton_datos, 4))   # se marca junto con el de la izquierda
+
+        layout.addStretch()
+        return rail
+
+    # ---------------------------- Notificaciones -----------------------------
+    def _notificar(self, texto, color=TEXTO):
+        self._notificaciones.insert(0, (time.strftime("%H:%M"), texto, color))
+        del self._notificaciones[20:]
+        self.boton_notificaciones.setIcon(_icono_campana(True))
+        self.boton_notificaciones.setToolTip(f"Notificaciones ({len(self._notificaciones)}) — hay nuevas")
+
+    def _marcar_notificaciones_vistas(self):
+        self.boton_notificaciones.setIcon(_icono_campana(False))
+        self.boton_notificaciones.setToolTip(f"Notificaciones ({len(self._notificaciones)})")
+
+    def _mostrar_notificaciones(self):
+        menu = QMenu(self)
+        if not self._notificaciones:
+            vacio = menu.addAction("No hay notificaciones")
+            vacio.setEnabled(False)
+        else:
+            for hora, texto, color in self._notificaciones:
+                menu.addAction(_icono_punto(color), f"{hora}    {texto}")
+            menu.addSeparator()
+            menu.addAction("Limpiar notificaciones", self._limpiar_notificaciones)
+        self._marcar_notificaciones_vistas()
+        # Se abre hacia la izquierda de la campana, como en PyCharm
+        posicion = self.boton_notificaciones.mapToGlobal(QPoint(-menu.sizeHint().width() - 6, 0))
+        menu.exec(posicion)
+
+    def _limpiar_notificaciones(self):
+        self._notificaciones.clear()
+        self._marcar_notificaciones_vistas()
 
     def _mostrar_herramienta(self, indice):
         """Como en PyCharm: si la herramienta ya esta abierta se oculta, si no se abre."""
@@ -1657,10 +1796,10 @@ class VentanaIDE(QMainWindow):
 
         barra_tab = QFrame()
         barra_tab.setObjectName("barraTabEditor")
-        barra_tab.setFixedHeight(38)
+        barra_tab.setFixedHeight(40)
         layout_tab = QHBoxLayout(barra_tab)
-        layout_tab.setContentsMargins(0, 0, 12, 0)
-        layout_tab.setSpacing(6)
+        layout_tab.setContentsMargins(8, 0, 12, 0)
+        layout_tab.setSpacing(4)
 
         # Pestañas de archivos abiertos (se pueden arrastrar para reordenarlas)
         self.barra_pestanas = QTabBar()
@@ -1672,7 +1811,7 @@ class VentanaIDE(QMainWindow):
         self.barra_pestanas.setElideMode(Qt.TextElideMode.ElideNone)
         self.barra_pestanas.setIconSize(QSize(15, 15))
         self.barra_pestanas.currentChanged.connect(self._al_cambiar_pestana)
-        layout_tab.addWidget(self.barra_pestanas, 0, Qt.AlignmentFlag.AlignBottom)
+        layout_tab.addWidget(self.barra_pestanas, 0, Qt.AlignmentFlag.AlignVCenter)
 
         # "+": nueva pestaña en blanco
         boton_nueva = QToolButton()
@@ -1931,6 +2070,7 @@ class VentanaIDE(QMainWindow):
         if inicial.exists():
             self._cargar_archivo(inicial)
             self.ejecutar_codigo()
+            self._marcar_notificaciones_vistas()   # al abrir el IDE no aparece el punto rojo
 
     def _cargar_archivo(self, archivo):
         """Abre el archivo en una pestaña. Si ya estaba abierto, solo cambia a ella;
@@ -2039,6 +2179,7 @@ class VentanaIDE(QMainWindow):
         self._cargar_explorador()
         self._actualizar_titulo()
         self._poner_estado(f"Guardado: {ruta.name}", VERDE_SUAVE)
+        self._notificar(f"Guardado: {ruta.name}", TEXTO_GRIS)
         return True
 
     def closeEvent(self, event):
@@ -2356,6 +2497,11 @@ class VentanaIDE(QMainWindow):
         # El estado (valido / invalido) ya no va aqui: se muestra en el panel ERRORES
         self.etiqueta_tiempo.setText(f"{milisegundos:.0f} ms")
         self._poner_estado("")
+        accion = "ejecutado" if ejecutar else "analizado"
+        if errores:
+            self._notificar(f"{self._nombre_archivo()}: {len(errores)} error(es)", ROJO)
+        else:
+            self._notificar(f"{self._nombre_archivo()}: {accion} sin errores", VERDE_SUAVE)
         if errores:
             self.etiqueta_errores_estado.setStyleSheet(f"padding: 0px 10px; color: {ROJO};")
             self.etiqueta_errores_estado.setText(f"✗ {len(errores)} error(es)")
