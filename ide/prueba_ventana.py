@@ -15,6 +15,7 @@ from PyQt6.QtGui import (
     QLinearGradient,
     QPainter,
     QPainterPath,
+    QPalette,
     QPen,
     QPixmap,
     QPolygon,
@@ -90,7 +91,6 @@ CODIGO_PALABRA = "#4FC3FF"
 CODIGO_NUMERO = "#B5F58A"
 CODIGO_CADENA = "#FFB08A"
 
-COLOR_ICONO_CLARO = QColor(TEXTO)
 FUENTE_MONO = "'Consolas', 'Cascadia Mono', monospace"
 
 ESTILO_OSCURO = f"""
@@ -194,6 +194,7 @@ QTreeWidget {{
     border: none;
     outline: none;
     padding: 2px 6px;
+    show-decoration-selected: 0;
 }}
 QTreeWidget::item {{
     padding: 5px 6px;
@@ -219,41 +220,48 @@ QTabBar#pestanasEditor::tab {{
     background-color: {FONDO_BARRA};
     color: {TEXTO_GRIS};
     font-size: 13px;
-    font-weight: 500;
-    height: 36px;
-    padding: 0px 6px 0px 12px;
+    height: 37px;
+    padding: 0px 4px 0px 12px;
+    margin: 0px;
     border: none;
     border-right: 1px solid {BORDE};
     border-top: 2px solid transparent;
 }}
 QTabBar#pestanasEditor::tab:selected {{
     background-color: {FONDO};
-    color: {TEXTO};
+    color: #FFFFFF;
     border-top: 2px solid {MORADO};
 }}
 QTabBar#pestanasEditor::tab:hover:!selected {{
-    color: #FFFFFF;
+    background-color: #1F2130;
+    color: {TEXTO};
+}}
+QTabBar#pestanasEditor QToolButton {{
+    background-color: {FONDO_BARRA};
+    border: none;
 }}
 QWidget#ladoPestana, QWidget#ladoPestana QLabel {{
     background: transparent;
 }}
 QToolButton#btnNuevaPestana {{
     color: {TEXTO_GRIS};
-    font-size: 18px;
-    padding: 0px 7px 2px 7px;
+    font-size: 17px;
+    border-radius: 6px;
+    padding: 0px 0px 2px 0px;
 }}
 QToolButton#btnNuevaPestana:hover {{
+    background-color: #25273A;
     color: #FFFFFF;
 }}
 QToolButton#btnCerrarTab {{
-    color: {TEXTO_GRIS};
-    font-size: 14px;
-    padding: 0px 4px;
-}}
-QLabel#rutaArchivo {{
     color: {TEXTO_APAGADO};
-    background: transparent;
-    font-size: 12px;
+    font-size: 14px;
+    border-radius: 4px;
+    padding: 0px 0px 1px 0px;
+}}
+QToolButton#btnCerrarTab:hover {{
+    background-color: #32354E;
+    color: #FFFFFF;
 }}
 
 /* ---------- Editores de texto ---------- */
@@ -263,10 +271,50 @@ QPlainTextEdit {{
     border: none;
     selection-background-color: #3730A3;
 }}
-QPlainTextEdit#salidaTerminal, QPlainTextEdit#codigoIntermedio {{
+QPlainTextEdit#codigoIntermedio {{
     font-family: {FUENTE_MONO};
     font-size: 10pt;
     padding: 6px 4px;
+}}
+QPlainTextEdit#salidaTerminal {{
+    font-family: {FUENTE_MONO};
+    font-size: 10pt;
+    padding: 10px 16px;
+}}
+
+/* ---------- Barras de desplazamiento delgadas (mismos colores del tema) ---------- */
+QScrollBar:vertical {{
+    background: transparent;
+    width: 10px;
+    margin: 2px;
+}}
+QScrollBar:horizontal {{
+    background: transparent;
+    height: 10px;
+    margin: 2px;
+}}
+QScrollBar::handle:vertical {{
+    background: #2E3044;
+    border-radius: 3px;
+    min-height: 30px;
+}}
+QScrollBar::handle:horizontal {{
+    background: #2E3044;
+    border-radius: 3px;
+    min-width: 30px;
+}}
+QScrollBar::handle:hover {{
+    background: #32354E;
+}}
+QScrollBar::add-line, QScrollBar::sub-line {{
+    width: 0px;
+    height: 0px;
+}}
+QScrollBar::add-page, QScrollBar::sub-page {{
+    background: transparent;
+}}
+QAbstractScrollArea::corner {{
+    background: transparent;
 }}
 
 /* ---------- Islas: editor y consola separados (estilo PyCharm) ---------- */
@@ -289,25 +337,6 @@ QFrame#isla {{
 QTabWidget::pane {{
     border: none;
     background-color: {FONDO};
-}}
-QTabBar {{
-    background-color: {FONDO_BARRA};
-}}
-QTabBar::tab {{
-    background-color: {FONDO_BARRA};
-    color: {TEXTO_GRIS};
-    font-size: 11px;
-    font-weight: 600;
-    padding: 9px 16px 7px 16px;
-    border: none;
-    border-bottom: 2px solid transparent;
-}}
-QTabBar::tab:selected {{
-    color: {TEXTO};
-    border-bottom: 2px solid {MORADO};
-}}
-QTabBar::tab:hover:!selected {{
-    color: #FFFFFF;
 }}
 QTreeWidget#arbolSintactico {{
     background-color: {FONDO};
@@ -364,9 +393,8 @@ QStatusBar QLabel {{
 # =============================================================================
 # Iconos de la franja lateral y del explorador (los mismos de siempre)
 # =============================================================================
-def _crear_icono(tipo, color=None):
-    """Dibuja iconos vectoriales con QPainter para no depender de imagenes externas."""
-    color_icono = color or COLOR_ICONO_CLARO
+def _crear_icono(tipo):
+    """Iconos de la ventana y del explorador (logo, carpeta y archivo)."""
     pixmap = QPixmap(24, 24)
     pixmap.fill(Qt.GlobalColor.transparent)
 
@@ -380,73 +408,6 @@ def _crear_icono(tipo, color=None):
         p.setPen(QColor("#FFFFFF"))
         p.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         p.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "E")
-
-    elif tipo == "new":
-        p.setPen(QPen(color_icono, 2.4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        p.drawLine(12, 5, 12, 19)
-        p.drawLine(5, 12, 19, 12)
-
-    elif tipo == "open":
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(color_icono)
-        carpeta = QPolygon([
-            QPoint(3, 6), QPoint(10, 6), QPoint(12, 8),
-            QPoint(21, 8), QPoint(21, 19), QPoint(3, 19),
-        ])
-        p.drawPolygon(carpeta)
-
-    elif tipo == "save":
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(color_icono)
-        cuerpo = QPolygon([
-            QPoint(4, 4), QPoint(17, 4), QPoint(20, 7),
-            QPoint(20, 20), QPoint(4, 20),
-        ])
-        p.drawPolygon(cuerpo)
-        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
-        p.drawRect(7, 5, 8, 5)
-        p.drawRect(7, 13, 10, 6)
-        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
-        p.setBrush(color_icono)
-        p.drawRect(12, 6, 2, 3)
-
-    elif tipo == "copy":
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(color_icono)
-        p.drawRoundedRect(5, 4, 10, 12, 1.5, 1.5)
-        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
-        p.drawRoundedRect(8, 7, 11, 13, 1.5, 1.5)
-        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
-        p.setBrush(color_icono)
-        p.drawRoundedRect(9, 8, 10, 12, 1.5, 1.5)
-
-    elif tipo == "paste":
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(color_icono)
-        p.drawRoundedRect(6, 6, 12, 14, 2, 2)
-        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
-        p.drawRoundedRect(8, 3, 8, 5, 1.5, 1.5)
-        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceOver)
-        p.setBrush(color_icono)
-        p.drawRoundedRect(9, 3, 6, 4, 1.5, 1.5)
-        p.drawRect(11, 2, 2, 2)
-
-    elif tipo == "cut":
-        p.setPen(QPen(color_icono, 2.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawLine(7, 4, 15, 15)
-        p.drawLine(17, 4, 9, 15)
-        p.drawEllipse(5, 14, 5, 5)
-        p.drawEllipse(14, 14, 5, 5)
-
-    elif tipo == "about":
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(color_icono)
-        p.drawEllipse(4, 4, 16, 16)
-        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
-        p.setFont(QFont("Serif", 12, QFont.Weight.Bold))
-        p.setPen(QColor(0, 0, 0))
-        p.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "i")
 
     elif tipo == "folder":
         p.setPen(QPen(QColor(TEXTO_GRIS), 1.6))
@@ -522,13 +483,6 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         p.drawLine(QPointF(9, 12), QPointF(15, 12))
         p.drawLine(QPointF(9, 16), QPointF(15, 16))
 
-    elif tipo == "error":
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(ROJO))
-        p.drawEllipse(QRectF(2, 2, 20, 20))
-        p.setPen(QPen(QColor(FONDO), 2.4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-        p.drawLine(QPointF(8.5, 8.5), QPointF(15.5, 15.5))
-        p.drawLine(QPointF(15.5, 8.5), QPointF(8.5, 15.5))
 
     elif tipo == "nuevo":
         ruta((6, 3), (14, 3), (19, 8), (19, 21), (6, 21), cerrar=True)
@@ -616,33 +570,10 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         ruta((15, 8), (9.5, 8), (9.5, 16), (15, 16))
         p.drawLine(QPointF(9.5, 12), QPointF(14, 12))
 
-    elif tipo == "ejecutar_contorno":
-        ruta((7.5, 5), (19, 12), (7.5, 19), cerrar=True)
 
-    elif tipo == "repetir":
-        camino = QPainterPath()
-        camino.arcMoveTo(QRectF(5, 5, 14, 14), 50)
-        camino.arcTo(QRectF(5, 5, 14, 14), 50, 290)
-        p.drawPath(camino)
-        ruta((16.5, 3), (16.5, 7.5), (12, 7.5))
 
-    elif tipo == "arriba":
-        p.drawLine(QPointF(12, 19), QPointF(12, 5))
-        ruta((6.5, 10.5), (12, 5), (17.5, 10.5))
 
-    elif tipo == "abajo":
-        p.drawLine(QPointF(12, 5), QPointF(12, 19))
-        ruta((6.5, 13.5), (12, 19), (17.5, 13.5))
 
-    elif tipo == "ajuste":
-        p.drawLine(QPointF(4, 6), QPointF(20, 6))
-        camino = QPainterPath(QPointF(4, 12))
-        camino.lineTo(QPointF(16, 12))
-        camino.cubicTo(QPointF(20.5, 12), QPointF(20.5, 18), QPointF(16, 18))
-        camino.lineTo(QPointF(11, 18))
-        p.drawPath(camino)
-        ruta((13.5, 15.5), (11, 18), (13.5, 20.5))
-        p.drawLine(QPointF(4, 18), QPointF(7, 18))
 
     elif tipo == "copiar":
         p.drawRoundedRect(QRectF(9, 9, 11, 11), 2, 2)
@@ -792,9 +723,6 @@ class EditorCodigo(QPlainTextEdit):
 
     def alejar(self):
         self.aplicar_tamano(self.tamano_fuente - 1)
-
-    def restablecer_zoom(self):
-        self.aplicar_tamano(self.TAMANO_BASE)
 
     def wheelEvent(self, event):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
@@ -1167,6 +1095,11 @@ class _Documento:
         self.nombre_nuevo = nombre_nuevo    # "Sin título 2.txt" mientras no tenga archivo
         self.fin_de_linea = FIN_DE_LINEA_SISTEMA
         self.punto = QLabel("●")            # indicador de cambios sin guardar en la pestaña
+        self.punto.setStyleSheet(f"color: {AMARILLO}; font-size: 10px;")
+        self.punto.setToolTip("Cambios sin guardar")
+        politica = self.punto.sizePolicy()
+        politica.setRetainSizeWhenHidden(True)   # la × no se mueve al aparecer el punto
+        self.punto.setSizePolicy(politica)
 
     @property
     def nombre(self):
@@ -1217,7 +1150,6 @@ class VentanaIDE(QMainWindow):
         self._documentos = []                 # pestañas abiertas (_Documento)
         self._documento_ejecutado = None      # pestaña cuya salida esta en la consola
         self._tamano_editor = EditorCodigo.TAMANO_BASE
-        self._errores_actuales = []
         self._enlaces_consola = {}    # bloque de la consola -> (linea, columna) del error
 
         self._crear_acciones()
@@ -1707,6 +1639,12 @@ class VentanaIDE(QMainWindow):
         self.explorador = QTreeWidget()
         self.explorador.setHeaderHidden(True)
         self.explorador.setIconSize(QSize(16, 16))
+        self.explorador.setIndentation(14)
+        # Mismo color de seleccion en la zona de la flecha que en el nombre (una sola franja)
+        paleta = self.explorador.palette()
+        for grupo in (QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive):
+            paleta.setColor(grupo, QPalette.ColorRole.Highlight, QColor("#252338"))
+        self.explorador.setPalette(paleta)
         self.explorador.itemClicked.connect(self._al_seleccionar_archivo)
         layout_exp.addWidget(self.explorador)
         return self.panel_explorador
@@ -1722,7 +1660,7 @@ class VentanaIDE(QMainWindow):
         barra_tab.setFixedHeight(38)
         layout_tab = QHBoxLayout(barra_tab)
         layout_tab.setContentsMargins(0, 0, 12, 0)
-        layout_tab.setSpacing(4)
+        layout_tab.setSpacing(6)
 
         # Pestañas de archivos abiertos (se pueden arrastrar para reordenarlas)
         self.barra_pestanas = QTabBar()
@@ -1740,14 +1678,11 @@ class VentanaIDE(QMainWindow):
         boton_nueva = QToolButton()
         boton_nueva.setObjectName("btnNuevaPestana")
         boton_nueva.setText("+")
+        boton_nueva.setFixedSize(28, 28)
         boton_nueva.setToolTip("Nueva pestaña (Ctrl+T)")
         boton_nueva.setCursor(Qt.CursorShape.PointingHandCursor)
         boton_nueva.clicked.connect(self.nuevo_documento)
         layout_tab.addWidget(boton_nueva)
-
-        self.etiqueta_ruta = QLabel("")
-        self.etiqueta_ruta.setObjectName("rutaArchivo")
-        layout_tab.addWidget(self.etiqueta_ruta)
         layout_tab.addStretch()
 
         layout.addWidget(barra_tab)
@@ -1780,12 +1715,15 @@ class VentanaIDE(QMainWindow):
         lado = QWidget()
         lado.setObjectName("ladoPestana")
         layout_lado = QHBoxLayout(lado)
-        layout_lado.setContentsMargins(6, 0, 0, 0)
-        layout_lado.setSpacing(6)
+        layout_lado.setContentsMargins(4, 0, 2, 0)
+        layout_lado.setSpacing(2)
         layout_lado.addWidget(doc.punto)
+        doc.punto.setVisible(False)
         boton_cerrar = QToolButton()
         boton_cerrar.setObjectName("btnCerrarTab")
         boton_cerrar.setText("×")
+        boton_cerrar.setFixedSize(20, 20)
+        boton_cerrar.setCursor(Qt.CursorShape.PointingHandCursor)
         boton_cerrar.setToolTip("Cerrar pestaña (Ctrl+W)")
         boton_cerrar.clicked.connect(lambda: self.cerrar_pestana(doc))
         layout_lado.addWidget(boton_cerrar)
@@ -2050,19 +1988,11 @@ class VentanaIDE(QMainWindow):
                 continue
             self.barra_pestanas.setTabText(i, doc.nombre)
             self.barra_pestanas.setTabToolTip(i, str(doc.archivo) if doc.archivo else doc.nombre)
-            doc.punto.setStyleSheet(f"color: {AMARILLO if doc.modificado else VERDE}; font-size: 11px;")
-            doc.punto.setToolTip("Cambios sin guardar" if doc.modificado else "Guardado")
+            # Como en PyCharm: el punto solo aparece si hay cambios sin guardar
+            doc.punto.setVisible(doc.modificado)
 
         nombre = self.documento.nombre
         modificado = self.documento.modificado
-        if self.archivo_actual:
-            try:
-                ruta = self.archivo_actual.relative_to(RUTA_PROYECTO).parent.as_posix()
-            except ValueError:
-                ruta = str(self.archivo_actual.parent)
-            self.etiqueta_ruta.setText(ruta)
-        else:
-            self.etiqueta_ruta.setText("")
         self.setWindowTitle(f"{'● ' if modificado else ''}{nombre} — EYKOL IDE")
         if hasattr(self, "etiqueta_migas"):
             self._actualizar_migas()
@@ -2223,6 +2153,16 @@ class VentanaIDE(QMainWindow):
         self.salida.ensureCursorVisible()
         return cursor.blockNumber()
 
+    def _escribir_separador(self, titulo="", color=BORDE):
+        """Linea divisoria de la consola, con o sin titulo: ── ERRORES (1) ──────"""
+        ancho = 64
+        if titulo:
+            texto = f"── {titulo} "
+            texto += "─" * max(4, ancho - len(texto))
+        else:
+            texto = "─" * ancho
+        self._escribir_linea((texto, color, bool(titulo)))
+
     def _limpiar_salida(self):
         self.salida.clear()
         self._enlaces_consola = {}
@@ -2256,24 +2196,25 @@ class VentanaIDE(QMainWindow):
     def _escribir_errores(self, errores):
         """Apartado ERRORES dentro de la misma consola. Cada ubicacion es un
         enlace: al hacer clic lleva a esa linea del editor."""
-        self._errores_actuales = list(errores)
         if not errores:
             return
         self._escribir_linea(("", TEXTO))
-        self._escribir_linea((f"──────── ERRORES ({len(errores)}) ────────", ROJO, True))
+        self._escribir_separador(f"ERRORES ({len(errores)})", ROJO)
         nombre = self._nombre_archivo()
-        for error in errores:
+        for numero, error in enumerate(errores):
+            if numero:
+                self._escribir_linea(("", TEXTO))
             linea = getattr(error, "linea", None)
             columna = getattr(error, "columna", None)
             self._escribir_linea(("✗ ", ROJO, True), (self._texto_error(error), ROJO))
             if linea:
                 posicion = f"Ln {linea}, Col {columna}" if columna else f"Ln {linea}"
-                bloque = self._escribir_linea(("    ", TEXTO), (f"{nombre} [{posicion}]", AZUL, False, True))
+                bloque = self._escribir_linea(("  ", TEXTO), (f"{nombre} [{posicion}]", AZUL, False, True))
                 self._enlaces_consola[bloque] = (linea, columna)
             else:
-                self._escribir_linea((f"    {nombre} [fase: {getattr(error, 'fase', '—')}]", TEXTO_APAGADO))
+                self._escribir_linea((f"  {nombre} [fase: {getattr(error, 'fase', '—')}]", TEXTO_APAGADO))
             if getattr(error, "sugerencia", None):
-                self._escribir_linea((f"    Sugerencia: {error.sugerencia}", TEXTO_GRIS))
+                self._escribir_linea(("  → ", TEXTO_APAGADO), (error.sugerencia, TEXTO_GRIS))
 
     # ---------------------------- Paneles de analisis ------------------------
     def _llenar_arbol(self, arbol):
@@ -2388,6 +2329,7 @@ class VentanaIDE(QMainWindow):
         self._escribir_errores(errores)
 
         self._escribir_linea(("", TEXTO))
+        self._escribir_separador()
         if errores:
             self._escribir_linea(
                 (f"✗ Estado: Código inválido ({len(errores)} error(es) detectado(s))", ROJO, True)
