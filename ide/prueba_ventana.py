@@ -1,4 +1,3 @@
-import math
 import os
 import sys
 import time
@@ -33,9 +32,11 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QInputDialog,
     QLineEdit,
     QMainWindow,
     QMenu,
+    QMenuBar,
     QMessageBox,
     QPlainTextEdit,
     QSizePolicy,
@@ -109,10 +110,58 @@ QToolTip {{
 QMenu {{
     background-color: {FONDO_BARRA};
     color: {TEXTO};
-    border: 1px solid {BORDE};
+    border: 1px solid #2E3044;
+    border-radius: 8px;
+    padding: 5px;
+}}
+QMenu::item {{
+    /* El fondo explicito evita que el estilo de Windows 11 pinte las opciones de negro */
+    background-color: transparent;
+    padding: 6px 28px 6px 10px;
+    border-radius: 5px;
 }}
 QMenu::item:selected {{
     background-color: #252338;
+    color: #FFFFFF;
+}}
+QMenu::item:disabled {{
+    color: {TEXTO_APAGADO};
+}}
+QMenu::separator {{
+    height: 1px;
+    background: {BORDE};
+    margin: 4px 8px;
+}}
+QMenu::icon {{
+    padding-left: 6px;
+}}
+
+/* ---------- Menu principal (☰), en linea como en PyCharm ---------- */
+QMenuBar#menuPrincipal {{
+    background: transparent;
+    color: {TEXTO_SUAVE};
+    font-size: 13px;
+    spacing: 2px;
+}}
+QMenuBar#menuPrincipal::item {{
+    background: transparent;
+    padding: 5px 9px;
+    border-radius: 6px;
+}}
+QMenuBar#menuPrincipal::item:selected {{
+    background-color: #25273A;
+    color: #FFFFFF;
+}}
+QMenuBar#menuPrincipal::item:pressed {{
+    background-color: #32354E;
+    color: #FFFFFF;
+}}
+QToolButton#botonMenu:checked {{
+    background-color: #25273A;
+}}
+/* Los menus que cuelgan de la barra superior no deben heredar su fondo transparente */
+QToolBar#barraSuperior QMenu {{
+    background-color: {FONDO_BARRA};
 }}
 
 /* ---------- Barra superior ---------- */
@@ -538,12 +587,6 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         for y in (7, 12, 17):
             p.drawLine(QPointF(4, y), QPointF(20, y))
 
-    elif tipo == "mas":
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(color))
-        for y in (6, 12, 18):
-            p.drawEllipse(QPointF(12, y), 1.6, 1.6)
-
     elif tipo == "rama":
         p.drawEllipse(QPointF(7, 5), 2, 2)
         p.drawEllipse(QPointF(7, 19), 2, 2)
@@ -552,14 +595,6 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         camino = QPainterPath(QPointF(17, 9))
         camino.cubicTo(QPointF(17, 13), QPointF(8, 12), QPointF(7, 16))
         p.drawPath(camino)
-
-    elif tipo == "ajustes":
-        p.drawEllipse(QPointF(12, 12), 3, 3)
-        p.drawEllipse(QPointF(12, 12), 6.5, 6.5)
-        for i in range(8):
-            angulo = math.radians(i * 45)
-            p.drawLine(QPointF(12 + 6.5 * math.cos(angulo), 12 + 6.5 * math.sin(angulo)),
-                       QPointF(12 + 9 * math.cos(angulo), 12 + 9 * math.sin(angulo)))
 
     elif tipo == "analizar":
         p.setPen(QPen(QColor(VERDE), 1.7, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
@@ -1272,9 +1307,13 @@ class VentanaIDE(QMainWindow):
             secuencia = QKeySequence(atajo)
             texto_atajo = secuencia.toString(QKeySequence.SequenceFormat.NativeText)
             accion.setToolTip(f"{texto} ({texto_atajo})")
+            accion.setShortcut(secuencia)
             if en_ventana:
-                accion.setShortcut(secuencia)
                 self.addAction(accion)
+            else:
+                # El atajo solo se muestra en los menus; lo atiende el propio editor
+                # (asi Ctrl+C / Ctrl+V siguen funcionando tambien en el buscador)
+                accion.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
         else:
             accion.setToolTip(texto)
         accion.triggered.connect(funcion)
@@ -1312,6 +1351,7 @@ class VentanaIDE(QMainWindow):
                                             lambda: self.editor.alternar_comentario())
         self.accion_buscar = self._accion(None, "Buscar", "Ctrl+F", self._enfocar_buscador)
         self.accion_consola = self._accion(None, "Mostrar / ocultar consola", "Ctrl+J", self.alternar_panel)
+        self.accion_limpiar_consola = self._accion(None, "Limpiar consola", "Ctrl+L", self._mensaje_inicial_consola)
         self.accion_acercar = self._accion(None, "Aumentar zoom", "Ctrl++", lambda: self._zoom(1))
         self.accion_alejar = self._accion(None, "Reducir zoom", "Ctrl+-", lambda: self._zoom(-1))
         self.accion_zoom_base = self._accion(None, "Restablecer zoom", "Ctrl+0", lambda: self._zoom(0))
@@ -1319,13 +1359,28 @@ class VentanaIDE(QMainWindow):
         self.accion_cerrar_pestana = self._accion(None, "Cerrar pestaña", "Ctrl+W", lambda: self.cerrar_pestana())
         self.accion_salir = self._accion(None, "Salir", "Ctrl+Q", self.close)
 
+        # --- Editor (los atajos los maneja el propio editor; aqui solo se muestran) ---
+        self.accion_deshacer = self._accion(None, "Deshacer", "Ctrl+Z", lambda: self.editor.undo(), en_ventana=False)
+        self.accion_rehacer = self._accion(None, "Rehacer", "Ctrl+Y", lambda: self.editor.redo(), en_ventana=False)
+        self.accion_seleccionar = self._accion(None, "Seleccionar todo", "Ctrl+A",
+                                               lambda: self.editor.selectAll(), en_ventana=False)
+        self.accion_sangria_mas = self._accion(None, "Aumentar sangría", "Tab",
+                                               lambda: self.editor.cambiar_sangria(True), en_ventana=False)
+        self.accion_sangria_menos = self._accion(None, "Reducir sangría", "Shift+Tab",
+                                                 lambda: self.editor.cambiar_sangria(False), en_ventana=False)
+
+        # --- Navegacion ---
+        self.accion_ir_linea = self._accion(None, "Ir a línea…", "Ctrl+G", self.ir_a_linea)
+        self.accion_buscar_sig = self._accion(None, "Buscar siguiente", "F3", self.buscar_texto)
+        self.accion_buscar_ant = self._accion(None, "Buscar anterior", "Shift+F3", lambda: self.buscar_texto(atras=True))
+        self.accion_pestana_sig = self._accion(None, "Pestaña siguiente", "Ctrl+Tab", lambda: self._cambiar_pestana(1))
+        self.accion_pestana_ant = self._accion(None, "Pestaña anterior", "Ctrl+Shift+Tab",
+                                               lambda: self._cambiar_pestana(-1))
+        self.accion_error = self._accion(None, "Ir al primer error", "F2", self.ir_al_primer_error)
+
         # --- Solo atajos de teclado ---
         self._accion(None, "Ejecutar código", "Ctrl+Return", self.ejecutar_codigo)
-        self._accion(None, "Buscar siguiente", "F3", self.buscar_texto)
-        self._accion(None, "Buscar anterior", "Shift+F3", lambda: self.buscar_texto(atras=True))
         self._accion(None, "Aumentar zoom", "Ctrl+=", lambda: self._zoom(1))
-        self._accion(None, "Pestaña siguiente", "Ctrl+Tab", lambda: self._cambiar_pestana(1))
-        self._accion(None, "Pestaña anterior", "Ctrl+Shift+Tab", lambda: self._cambiar_pestana(-1))
 
     # ---------------------------- Barra superior -----------------------------
     def _crear_barra_superior(self):
@@ -1339,7 +1394,23 @@ class VentanaIDE(QMainWindow):
 
         # ----- Izquierda: logo, menu principal, proyecto y rama (como PyCharm) -----
         barra.addWidget(_LogoEYKOL())
-        barra.addWidget(self._boton_menu("menu", "Menú principal", self._crear_menu_principal()))
+
+        # ☰ Como en PyCharm: despliega la barra de menus en la misma linea
+        self.boton_menu = QToolButton()
+        self.boton_menu.setObjectName("botonMenu")
+        self.boton_menu.setIcon(_icono_barra("menu"))
+        self.boton_menu.setIconSize(QSize(18, 18))
+        self.boton_menu.setFixedSize(32, 32)
+        self.boton_menu.setToolTip("Menú principal")
+        self.boton_menu.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.boton_menu.setCheckable(True)
+        self.boton_menu.toggled.connect(self._alternar_menu_principal)
+        barra.addWidget(self.boton_menu)
+
+        self.barra_menu = self._crear_menu_principal()
+        self.barra_menu.triggered.connect(lambda _accion: self.boton_menu.setChecked(False))
+        self.accion_barra_menu = barra.addWidget(self.barra_menu)
+        self.accion_barra_menu.setVisible(False)
 
         nombre_proyecto = RUTA_PROYECTO.name
         palabras = [p for p in nombre_proyecto.replace("-", "_").split("_") if p and p[0].isalpha()]
@@ -1348,8 +1419,10 @@ class VentanaIDE(QMainWindow):
         menu_proyecto.addAction(self.accion_abrir)
         menu_proyecto.addAction("Abrir carpeta de ejemplos", self._abrir_carpeta_ejemplos)
         menu_proyecto.addAction("Recargar explorador", self._cargar_explorador)
-        barra.addWidget(self._selector(f"{nombre_proyecto}  ▾", _icono_insignia(iniciales),
-                                       "Proyecto", menu_proyecto))
+        self._ocultos_con_menu = []   # se esconden mientras la barra de menus esta abierta
+        selector_proyecto = self._selector(f"{nombre_proyecto}  ▾", _icono_insignia(iniciales),
+                                           "Proyecto", menu_proyecto)
+        self._ocultos_con_menu.append(barra.addWidget(selector_proyecto))
 
         rama = _rama_git()
         if rama:
@@ -1360,8 +1433,8 @@ class VentanaIDE(QMainWindow):
             icono_rama = QLabel()
             icono_rama.setPixmap(_dibujar_icono("rama", TEXTO_GRIS, 16))
             icono_rama.setStyleSheet("padding-left: 6px;")
-            barra.addWidget(icono_rama)
-            barra.addWidget(etiqueta_rama)
+            self._ocultos_con_menu.append(barra.addWidget(icono_rama))
+            self._ocultos_con_menu.append(barra.addWidget(etiqueta_rama))
 
         barra.addWidget(_espaciador())
 
@@ -1375,7 +1448,7 @@ class VentanaIDE(QMainWindow):
         self.campo_buscar.returnPressed.connect(self.buscar_texto)
         self.campo_buscar.textChanged.connect(self._contar_coincidencias)
         self.campo_buscar.installEventFilter(self)
-        barra.addWidget(self.campo_buscar)
+        self._ocultos_con_menu.append(barra.addWidget(self.campo_buscar))
 
         barra.addWidget(_espaciador())
 
@@ -1417,38 +1490,6 @@ class VentanaIDE(QMainWindow):
         boton_analizar.setCursor(Qt.CursorShape.PointingHandCursor)
         barra.addWidget(boton_analizar)
 
-        menu_mas = QMenu(self)
-        menu_mas.addAction(self.accion_guardar_como)
-        menu_mas.addAction("Limpiar consola", self._mensaje_inicial_consola)
-        menu_mas.addSeparator()
-        menu_mas.addAction(self.accion_palabras)
-        menu_mas.addAction(self.accion_acerca)
-        barra.addWidget(self._boton_menu("mas", "Más acciones", menu_mas))
-
-        barra.addWidget(_separador_vertical())
-
-        # ----- Derecha: ajustes -----
-        menu_ajustes = QMenu(self)
-        menu_ajustes.addAction(self.accion_acercar)
-        menu_ajustes.addAction(self.accion_alejar)
-        menu_ajustes.addAction(self.accion_zoom_base)
-        menu_ajustes.addSeparator()
-        menu_ajustes.addAction(self.accion_explorador)
-        menu_ajustes.addAction(self.accion_consola)
-        barra.addWidget(self._boton_menu("ajustes", "Ajustes", menu_ajustes))
-
-    def _boton_menu(self, icono, tooltip, menu):
-        """Boton de icono que abre un menu (☰, ⋮, ⚙)."""
-        boton = QToolButton()
-        boton.setIcon(_icono_barra(icono))
-        boton.setIconSize(QSize(18, 18))
-        boton.setFixedSize(32, 32)
-        boton.setToolTip(tooltip)
-        boton.setCursor(Qt.CursorShape.PointingHandCursor)
-        boton.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        boton.setMenu(menu)
-        return boton
-
     def _selector(self, texto, icono, tooltip, menu):
         """Selector con texto e icono (proyecto, "Archivo actual"), como en PyCharm."""
         boton = QToolButton()
@@ -1464,40 +1505,83 @@ class VentanaIDE(QMainWindow):
         return boton
 
     def _crear_menu_principal(self):
-        """Menu ☰ con todas las funciones del IDE agrupadas."""
-        menu = QMenu(self)
-        archivo = menu.addMenu("Archivo")
-        for accion in (self.accion_nueva_pestana, self.accion_abrir, self.accion_guardar, self.accion_guardar_como):
-            archivo.addAction(accion)
-        archivo.addSeparator()
-        archivo.addAction(self.accion_cerrar_pestana)
-        archivo.addAction(self.accion_salir)
+        """Barra de menus que despliega el ☰ (como el menu principal de PyCharm)."""
+        barra = QMenuBar()
+        barra.setObjectName("menuPrincipal")
+        barra.setNativeMenuBar(False)
 
-        editar = menu.addMenu("Editar")
-        editar.addAction("Deshacer", lambda: self.editor.undo())
-        editar.addAction("Rehacer", lambda: self.editor.redo())
-        editar.addSeparator()
-        for accion in (self.accion_cortar, self.accion_copiar, self.accion_pegar):
-            editar.addAction(accion)
-        editar.addSeparator()
-        editar.addAction(self.accion_comentar)
-        editar.addAction(self.accion_buscar)
+        def menu(titulo, *acciones):
+            submenu = barra.addMenu(titulo)
+            for accion in acciones:
+                if accion is None:
+                    submenu.addSeparator()
+                else:
+                    submenu.addAction(accion)
+            return submenu
 
-        ejecutar = menu.addMenu("Ejecutar")
-        ejecutar.addAction(self.accion_ejecutar)
-        ejecutar.addAction(self.accion_analizar)
+        menu("&Archivo",
+             self.accion_nueva_pestana, self.accion_abrir, None,
+             self.accion_guardar, self.accion_guardar_como, None,
+             self.accion_cerrar_pestana, self.accion_limpiar, None,
+             self.accion_salir)
+        menu("&Editar",
+             self.accion_deshacer, self.accion_rehacer, None,
+             self.accion_cortar, self.accion_copiar, self.accion_pegar, None,
+             self.accion_seleccionar, None,
+             self.accion_buscar, self.accion_buscar_sig, self.accion_buscar_ant)
+        menu("&Ver",
+             self.accion_explorador, self.accion_consola, self.accion_limpiar_consola, None,
+             self.accion_acercar, self.accion_alejar, self.accion_zoom_base)
+        menu("&Navegar",
+             self.accion_ir_linea, self.accion_error, None,
+             self.accion_pestana_sig, self.accion_pestana_ant)
+        menu("&Código",
+             self.accion_comentar, None,
+             self.accion_sangria_mas, self.accion_sangria_menos, None,
+             self.accion_palabras)
 
-        ver = menu.addMenu("Ver")
-        ver.addAction(self.accion_explorador)
-        ver.addAction(self.accion_consola)
-        ver.addSeparator()
-        for accion in (self.accion_acercar, self.accion_alejar, self.accion_zoom_base):
-            ver.addAction(accion)
+        ejecutar = menu("E&jecutar", self.accion_ejecutar, self.accion_analizar, None)
+        ejemplos = ejecutar.addMenu("Ejecutar ejemplo")
+        ejemplos.aboutToShow.connect(lambda: self._llenar_menu_ejemplos(ejemplos))
 
-        ayuda = menu.addMenu("Ayuda")
-        ayuda.addAction(self.accion_palabras)
-        ayuda.addAction(self.accion_acerca)
-        return menu
+        herramientas = barra.addMenu("&Herramientas")
+        for icono, nombre, indice in self.HERRAMIENTAS_EYKOL:
+            herramientas.addAction(_icono_barra(icono), nombre,
+                                   lambda _marcado=False, i=indice: self._mostrar_herramienta(i))
+
+        menu("A&yuda", self.accion_palabras, None, self.accion_acerca)
+        return barra
+
+    def _alternar_menu_principal(self, visible):
+        """☰ muestra u oculta la barra de menus en la linea superior. Mientras
+        esta abierta ocupa el lugar del proyecto, la rama y el buscador."""
+        self.accion_barra_menu.setVisible(visible)
+        for accion in self._ocultos_con_menu:
+            accion.setVisible(not visible)
+
+    def _llenar_menu_ejemplos(self, menu):
+        menu.clear()
+        for archivo in sorted(RUTA_EJEMPLOS.glob("*.txt")) if RUTA_EJEMPLOS.exists() else []:
+            menu.addAction(_icono_barra("archivo", TEXTO_GRIS), archivo.name,
+                           lambda _marcado=False, ruta=archivo: self._ejecutar_ejemplo(ruta))
+
+    def ir_a_linea(self):
+        total = self.editor.blockCount()
+        actual = self.editor.textCursor().blockNumber() + 1
+        linea, aceptado = QInputDialog.getInt(self, "Ir a línea", f"Línea (1 – {total}):", actual, 1, total)
+        if aceptado:
+            self.editor.ir_a(linea)
+
+    def ir_al_primer_error(self):
+        """Lleva al primer error de la ultima ejecucion (en su pestaña)."""
+        if not self._enlaces_consola:
+            self._poner_estado("No hay errores con ubicación en la última ejecución.", TEXTO_GRIS)
+            return
+        indice = self._indice_de(self._documento_ejecutado)
+        if indice >= 0:
+            self.barra_pestanas.setCurrentIndex(indice)
+        bloque = min(self._enlaces_consola)
+        self.editor.ir_a(*self._enlaces_consola[bloque])
 
     def _llenar_menu_ejecucion(self):
         """Opciones de "Archivo actual": el archivo abierto o cualquier ejemplo."""
@@ -1508,7 +1592,7 @@ class VentanaIDE(QMainWindow):
             self.menu_ejecucion.addSeparator()
             for archivo in sorted(RUTA_EJEMPLOS.glob("*.txt")):
                 self.menu_ejecucion.addAction(_icono_barra("archivo", TEXTO_GRIS), archivo.name,
-                                              lambda ruta=archivo: self._ejecutar_ejemplo(ruta))
+                                              lambda _marcado=False, ruta=archivo: self._ejecutar_ejemplo(ruta))
 
     def _ejecutar_ejemplo(self, ruta):
         self._cargar_archivo(ruta)      # lo abre en su pestaña (o cambia a ella)
