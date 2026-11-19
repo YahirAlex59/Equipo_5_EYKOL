@@ -18,6 +18,7 @@ from PyQt6.QtGui import (
     QPen,
     QPixmap,
     QPolygon,
+    QRegion,
     QSyntaxHighlighter,
     QTextCharFormat,
     QTextCursor,
@@ -38,6 +39,8 @@ from PyQt6.QtWidgets import (
     QPlainTextEdit,
     QSizePolicy,
     QSplitter,
+    QStackedWidget,
+    QTabBar,
     QTableWidgetItem,
     QTabWidget,
     QTextEdit,
@@ -176,7 +179,7 @@ QFrame#railLateral QToolButton:checked {{
 }}
 QFrame#panelExplorador {{
     background-color: {FONDO_EXPLORADOR};
-    border-right: 1px solid {BORDE};
+    border: none;
 }}
 QLabel#tituloExplorador {{
     background-color: {FONDO_EXPLORADOR};
@@ -209,13 +212,38 @@ QFrame#barraTabEditor {{
     background-color: {FONDO_BARRA};
     border-bottom: 1px solid {BORDE};
 }}
-QFrame#tabArchivoActivo {{
-    background-color: {FONDO};
+QTabBar#pestanasEditor {{
+    background: transparent;
+}}
+QTabBar#pestanasEditor::tab {{
+    background-color: {FONDO_BARRA};
+    color: {TEXTO_GRIS};
+    font-size: 13px;
+    font-weight: 500;
+    height: 36px;
+    padding: 0px 6px 0px 12px;
+    border: none;
     border-right: 1px solid {BORDE};
+    border-top: 2px solid transparent;
+}}
+QTabBar#pestanasEditor::tab:selected {{
+    background-color: {FONDO};
+    color: {TEXTO};
     border-top: 2px solid {MORADO};
 }}
-QFrame#tabArchivoActivo QLabel {{
+QTabBar#pestanasEditor::tab:hover:!selected {{
+    color: #FFFFFF;
+}}
+QWidget#ladoPestana, QWidget#ladoPestana QLabel {{
     background: transparent;
+}}
+QToolButton#btnNuevaPestana {{
+    color: {TEXTO_GRIS};
+    font-size: 18px;
+    padding: 0px 7px 2px 7px;
+}}
+QToolButton#btnNuevaPestana:hover {{
+    color: #FFFFFF;
 }}
 QToolButton#btnCerrarTab {{
     color: {TEXTO_GRIS};
@@ -241,10 +269,25 @@ QPlainTextEdit#salidaTerminal, QPlainTextEdit#codigoIntermedio {{
     padding: 6px 4px;
 }}
 
+/* ---------- Islas: editor y consola separados (estilo PyCharm) ---------- */
+QWidget#zonaIslas {{
+    background-color: {FONDO_LATERAL};
+}}
+QSplitter#divisorIslas {{
+    background-color: {FONDO_LATERAL};
+}}
+QSplitter#divisorIslas::handle {{
+    background-color: {FONDO_LATERAL};
+}}
+QFrame#isla {{
+    background-color: {FONDO};
+    border: 1px solid {BORDE};
+    border-radius: 8px;
+}}
+
 /* ---------- Panel inferior ---------- */
 QTabWidget::pane {{
     border: none;
-    border-top: 1px solid {BORDE};
     background-color: {FONDO};
 }}
 QTabBar {{
@@ -265,17 +308,6 @@ QTabBar::tab:selected {{
 }}
 QTabBar::tab:hover:!selected {{
     color: #FFFFFF;
-}}
-/* ---------- Consola (una sola, estilo PyCharm) ---------- */
-QFrame#barraConsola {{
-    background-color: {FONDO};
-    border-right: 1px solid {BORDE};
-}}
-QFrame#barraConsola QToolButton:checked {{
-    background-color: #252338;
-}}
-QFrame#separadorConsola {{
-    background-color: {BORDE};
 }}
 QTreeWidget#arbolSintactico {{
     background-color: {FONDO};
@@ -1121,10 +1153,58 @@ class ResaltadorIntermedio(QSyntaxHighlighter):
 # =============================================================================
 # Ventana principal
 # =============================================================================
+# Al guardar, Python escribe los saltos de linea del sistema (CRLF en Windows)
+FIN_DE_LINEA_SISTEMA = "CRLF" if os.name == "nt" else "LF"
+
+
+class _Documento:
+    """Una pestaña del editor: su propio editor, su archivo y su fin de linea."""
+
+    def __init__(self, nombre_nuevo):
+        self.editor = EditorCodigo()
+        self.resaltador = ResaltadorEYKOL(self.editor.document())
+        self.archivo = None                 # Path del archivo, o None si no se ha guardado
+        self.nombre_nuevo = nombre_nuevo    # "Sin título 2.txt" mientras no tenga archivo
+        self.fin_de_linea = FIN_DE_LINEA_SISTEMA
+        self.punto = QLabel("●")            # indicador de cambios sin guardar en la pestaña
+
+    @property
+    def nombre(self):
+        return self.archivo.name if self.archivo else self.nombre_nuevo
+
+    @property
+    def modificado(self):
+        return self.editor.document().isModified()
+
+    def esta_vacio(self):
+        """Pestaña nueva sin tocar: se puede reutilizar al abrir un archivo."""
+        return self.archivo is None and not self.modificado and not self.editor.toPlainText()
+
+
+class _Isla(QFrame):
+    """Panel con esquinas redondeadas y separado de los demas (estilo PyCharm)."""
+
+    RADIO = 8
+
+    def __init__(self, contenido):
+        super().__init__()
+        self.setObjectName("isla")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(1, 1, 1, 1)
+        layout.setSpacing(0)
+        layout.addWidget(contenido)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # La mascara recorta tambien a los hijos, asi las esquinas quedan redondas
+        camino = QPainterPath()
+        camino.addRoundedRect(QRectF(self.rect()), self.RADIO, self.RADIO)
+        self.setMask(QRegion(camino.toFillPolygon().toPolygon()))
+
+
 class VentanaIDE(QMainWindow):
 
-    # Al guardar, Python escribe los saltos de linea del sistema (CRLF en Windows)
-    FIN_DE_LINEA_SISTEMA = "CRLF" if os.name == "nt" else "LF"
+    FIN_DE_LINEA_SISTEMA = FIN_DE_LINEA_SISTEMA
 
     def __init__(self):
         super().__init__()
@@ -1134,15 +1214,11 @@ class VentanaIDE(QMainWindow):
         self.setStyleSheet(ESTILO_OSCURO)
         self.setWindowIcon(_crear_icono("logo"))
 
-        self.archivo_actual = None
-        self._fin_de_linea = self.FIN_DE_LINEA_SISTEMA
+        self._documentos = []                 # pestañas abiertas (_Documento)
+        self._documento_ejecutado = None      # pestaña cuya salida esta en la consola
+        self._tamano_editor = EditorCodigo.TAMANO_BASE
         self._errores_actuales = []
         self._enlaces_consola = {}    # bloque de la consola -> (linea, columna) del error
-
-        self.editor = EditorCodigo()
-        self.resaltador = ResaltadorEYKOL(self.editor.document())
-        self.editor.cursorPositionChanged.connect(self._actualizar_posicion_cursor)
-        self.editor.document().modificationChanged.connect(self._actualizar_titulo)
 
         self._crear_acciones()
         self._crear_barra_superior()
@@ -1153,6 +1229,36 @@ class VentanaIDE(QMainWindow):
         self._mensaje_inicial_consola()
         self._actualizar_titulo()
         self._abrir_archivo_inicial()
+
+    # ---------------------------- Pestaña actual -----------------------------
+    # El resto del IDE usa self.editor / self.archivo_actual como antes; ahora
+    # siempre se refieren a la pestaña que esta abierta.
+    @property
+    def documento(self):
+        return self.barra_pestanas.tabData(self.barra_pestanas.currentIndex())
+
+    @property
+    def editor(self):
+        return self.documento.editor
+
+    @property
+    def archivo_actual(self):
+        return self.documento.archivo
+
+    @archivo_actual.setter
+    def archivo_actual(self, valor):
+        doc = self.documento
+        doc.archivo = valor
+        if valor is None and not doc.nombre_nuevo:
+            doc.nombre_nuevo = self._nombre_libre(excepto=doc)
+
+    @property
+    def _fin_de_linea(self):
+        return self.documento.fin_de_linea
+
+    @_fin_de_linea.setter
+    def _fin_de_linea(self, valor):
+        self.documento.fin_de_linea = valor
 
     # ---------------------------- Acciones -----------------------------------
     def _accion(self, icono, texto, atajo, funcion, en_ventana=True):
@@ -1171,8 +1277,6 @@ class VentanaIDE(QMainWindow):
         return accion
 
     def _crear_acciones(self):
-        e = self.editor
-
         # --- Barra izquierda (estilo PyCharm, iconos de contorno) ---
         self.accion_nuevo = self._accion(_icono_barra("nuevo"), "Nuevo documento", "Ctrl+N", self.nuevo_documento)
         self.accion_explorador = self._accion(_icono_barra("abrir"), "Explorador", "Ctrl+B",
@@ -1200,19 +1304,24 @@ class VentanaIDE(QMainWindow):
         self.accion_analizar = self._accion(_icono_barra("analizar"), "Analizar sin ejecutar", "Shift+F5",
                                             self.analizar_codigo)
         self.accion_guardar_como = self._accion(None, "Guardar como", "Ctrl+Shift+S", self.guardar_como)
-        self.accion_comentar = self._accion(None, "Comentar / descomentar", "Ctrl+/", e.alternar_comentario)
+        self.accion_comentar = self._accion(None, "Comentar / descomentar", "Ctrl+/",
+                                            lambda: self.editor.alternar_comentario())
         self.accion_buscar = self._accion(None, "Buscar", "Ctrl+F", self._enfocar_buscador)
         self.accion_consola = self._accion(None, "Mostrar / ocultar consola", "Ctrl+J", self.alternar_panel)
-        self.accion_acercar = self._accion(None, "Aumentar zoom", "Ctrl++", e.acercar)
-        self.accion_alejar = self._accion(None, "Reducir zoom", "Ctrl+-", e.alejar)
-        self.accion_zoom_base = self._accion(None, "Restablecer zoom", "Ctrl+0", e.restablecer_zoom)
+        self.accion_acercar = self._accion(None, "Aumentar zoom", "Ctrl++", lambda: self._zoom(1))
+        self.accion_alejar = self._accion(None, "Reducir zoom", "Ctrl+-", lambda: self._zoom(-1))
+        self.accion_zoom_base = self._accion(None, "Restablecer zoom", "Ctrl+0", lambda: self._zoom(0))
+        self.accion_nueva_pestana = self._accion(None, "Nueva pestaña", "Ctrl+T", self.nuevo_documento)
+        self.accion_cerrar_pestana = self._accion(None, "Cerrar pestaña", "Ctrl+W", lambda: self.cerrar_pestana())
         self.accion_salir = self._accion(None, "Salir", "Ctrl+Q", self.close)
 
         # --- Solo atajos de teclado ---
         self._accion(None, "Ejecutar código", "Ctrl+Return", self.ejecutar_codigo)
         self._accion(None, "Buscar siguiente", "F3", self.buscar_texto)
         self._accion(None, "Buscar anterior", "Shift+F3", lambda: self.buscar_texto(atras=True))
-        self._accion(None, "Aumentar zoom", "Ctrl+=", e.acercar)
+        self._accion(None, "Aumentar zoom", "Ctrl+=", lambda: self._zoom(1))
+        self._accion(None, "Pestaña siguiente", "Ctrl+Tab", lambda: self._cambiar_pestana(1))
+        self._accion(None, "Pestaña anterior", "Ctrl+Shift+Tab", lambda: self._cambiar_pestana(-1))
 
     # ---------------------------- Barra superior -----------------------------
     def _crear_barra_superior(self):
@@ -1354,14 +1463,15 @@ class VentanaIDE(QMainWindow):
         """Menu ☰ con todas las funciones del IDE agrupadas."""
         menu = QMenu(self)
         archivo = menu.addMenu("Archivo")
-        for accion in (self.accion_nuevo, self.accion_abrir, self.accion_guardar, self.accion_guardar_como):
+        for accion in (self.accion_nueva_pestana, self.accion_abrir, self.accion_guardar, self.accion_guardar_como):
             archivo.addAction(accion)
         archivo.addSeparator()
+        archivo.addAction(self.accion_cerrar_pestana)
         archivo.addAction(self.accion_salir)
 
         editar = menu.addMenu("Editar")
-        editar.addAction("Deshacer", self.editor.undo)
-        editar.addAction("Rehacer", self.editor.redo)
+        editar.addAction("Deshacer", lambda: self.editor.undo())
+        editar.addAction("Rehacer", lambda: self.editor.redo())
         editar.addSeparator()
         for accion in (self.accion_cortar, self.accion_copiar, self.accion_pegar):
             editar.addAction(accion)
@@ -1397,10 +1507,7 @@ class VentanaIDE(QMainWindow):
                                               lambda ruta=archivo: self._ejecutar_ejemplo(ruta))
 
     def _ejecutar_ejemplo(self, ruta):
-        if self.archivo_actual != ruta:
-            if not self._confirmar_descartar():
-                return
-            self._cargar_archivo(ruta)
+        self._cargar_archivo(ruta)      # lo abre en su pestaña (o cambia a ella)
         self.ejecutar_codigo()
 
     def _abrir_carpeta_ejemplos(self):
@@ -1427,6 +1534,10 @@ class VentanaIDE(QMainWindow):
                     self.salida.viewport().setCursor(forma)
                 elif (enlace and evento.button() == Qt.MouseButton.LeftButton
                       and not self.salida.textCursor().hasSelection()):
+                    # El error es de la pestaña que se ejecuto: primero se cambia a ella
+                    indice = self._indice_de(self._documento_ejecutado)
+                    if indice >= 0:
+                        self.barra_pestanas.setCurrentIndex(indice)
                     self.editor.ir_a(*enlace)
         return super().eventFilter(objeto, evento)
 
@@ -1441,24 +1552,39 @@ class VentanaIDE(QMainWindow):
 
         layout_principal.addWidget(self._crear_rail())
 
+        # Explorador, editor y consola como "islas" separadas, como en PyCharm
+        zona_islas = QWidget()
+        zona_islas.setObjectName("zonaIslas")
+        layout_islas = QVBoxLayout(zona_islas)
+        layout_islas.setContentsMargins(6, 6, 6, 6)
+        layout_islas.setSpacing(0)
+
+        # Arriba: explorador | editor
         self.divisor_h = QSplitter(Qt.Orientation.Horizontal)
-        self.divisor_h.setHandleWidth(1)
-        self.divisor_h.addWidget(self._crear_explorador())
-
-        self.divisor_v = QSplitter(Qt.Orientation.Vertical)
-        self.divisor_v.setHandleWidth(1)
-        self.divisor_v.setChildrenCollapsible(False)
-        self.divisor_v.addWidget(self._crear_panel_editor())
-        self.divisor_v.addWidget(self._crear_panel_inferior())
-        self.divisor_v.setStretchFactor(0, 3)
-        self.divisor_v.setStretchFactor(1, 2)
-        self.divisor_v.setSizes([450, 300])
-
-        self.divisor_h.addWidget(self.divisor_v)
+        self.divisor_h.setObjectName("divisorIslas")
+        self.divisor_h.setHandleWidth(6)
+        self.divisor_h.setChildrenCollapsible(False)
+        self.isla_explorador = _Isla(self._crear_explorador())
+        self.divisor_h.addWidget(self.isla_explorador)
+        self.divisor_h.addWidget(_Isla(self._crear_panel_editor()))
         self.divisor_h.setStretchFactor(1, 1)
         self.divisor_h.setSizes([235, 965])
 
-        layout_principal.addWidget(self.divisor_h)
+        # Abajo: la consola ocupa todo el ancho, desde la barra izquierda
+        # (debajo del explorador y del editor), como el panel Run de PyCharm
+        self.divisor_v = QSplitter(Qt.Orientation.Vertical)
+        self.divisor_v.setObjectName("divisorIslas")
+        self.divisor_v.setHandleWidth(6)
+        self.divisor_v.setChildrenCollapsible(False)
+        self.divisor_v.addWidget(self.divisor_h)
+        self.isla_consola = _Isla(self._crear_panel_inferior())
+        self.divisor_v.addWidget(self.isla_consola)
+        self.divisor_v.setStretchFactor(0, 5)
+        self.divisor_v.setStretchFactor(1, 4)
+        self.divisor_v.setSizes([420, 380])     # consola con mas espacio
+        layout_islas.addWidget(self.divisor_v)
+
+        layout_principal.addWidget(zona_islas)
         self._sincronizar_herramientas()
 
     # Herramientas de EYKOL de la parte baja de la barra izquierda:
@@ -1520,15 +1646,15 @@ class VentanaIDE(QMainWindow):
 
     def _mostrar_herramienta(self, indice):
         """Como en PyCharm: si la herramienta ya esta abierta se oculta, si no se abre."""
-        if not self.pestanas.isHidden() and self.pestanas.currentIndex() == indice:
-            self.pestanas.setVisible(False)
+        if not self.isla_consola.isHidden() and self.pestanas.currentIndex() == indice:
+            self.isla_consola.setVisible(False)
         else:
-            self.pestanas.setVisible(True)
+            self.isla_consola.setVisible(True)
             self.pestanas.setCurrentIndex(indice)
         self._sincronizar_herramientas()
 
     def _sincronizar_herramientas(self, *_):
-        visible = not self.pestanas.isHidden()
+        visible = not getattr(self, "isla_consola", self.pestanas).isHidden()
         actual = self.pestanas.currentIndex()
         for boton, indice in getattr(self, "botones_herramientas", []):
             boton.defaultAction().setChecked(visible and indice == actual)
@@ -1596,48 +1722,145 @@ class VentanaIDE(QMainWindow):
         barra_tab.setFixedHeight(38)
         layout_tab = QHBoxLayout(barra_tab)
         layout_tab.setContentsMargins(0, 0, 12, 0)
-        layout_tab.setSpacing(10)
+        layout_tab.setSpacing(4)
 
-        tab_activo = QFrame()
-        tab_activo.setObjectName("tabArchivoActivo")
-        layout_activo = QHBoxLayout(tab_activo)
-        layout_activo.setContentsMargins(12, 0, 6, 0)
-        layout_activo.setSpacing(8)
+        # Pestañas de archivos abiertos (se pueden arrastrar para reordenarlas)
+        self.barra_pestanas = QTabBar()
+        self.barra_pestanas.setObjectName("pestanasEditor")
+        self.barra_pestanas.setExpanding(False)
+        self.barra_pestanas.setMovable(True)
+        self.barra_pestanas.setDrawBase(False)
+        self.barra_pestanas.setUsesScrollButtons(True)
+        self.barra_pestanas.setElideMode(Qt.TextElideMode.ElideNone)
+        self.barra_pestanas.setIconSize(QSize(15, 15))
+        self.barra_pestanas.currentChanged.connect(self._al_cambiar_pestana)
+        layout_tab.addWidget(self.barra_pestanas, 0, Qt.AlignmentFlag.AlignBottom)
 
-        icono = QLabel()
-        icono.setPixmap(_dibujar_icono("archivo", TEXTO_GRIS, 15))
-        self.etiqueta_archivo = QLabel("Sin título.txt")
-        self.etiqueta_archivo.setStyleSheet(f"color: {TEXTO}; font-weight: 500;")
-        self.punto_modificado = QLabel("●")
-        self.punto_modificado.setToolTip("Guardado")
+        # "+": nueva pestaña en blanco
+        boton_nueva = QToolButton()
+        boton_nueva.setObjectName("btnNuevaPestana")
+        boton_nueva.setText("+")
+        boton_nueva.setToolTip("Nueva pestaña (Ctrl+T)")
+        boton_nueva.setCursor(Qt.CursorShape.PointingHandCursor)
+        boton_nueva.clicked.connect(self.nuevo_documento)
+        layout_tab.addWidget(boton_nueva)
 
-        boton_cerrar = QToolButton()
-        boton_cerrar.setObjectName("btnCerrarTab")
-        boton_cerrar.setText("×")
-        boton_cerrar.setToolTip("Cerrar (nuevo documento)")
-        boton_cerrar.clicked.connect(self.nuevo_documento)
-
-        layout_activo.addWidget(icono)
-        layout_activo.addWidget(self.etiqueta_archivo)
-        layout_activo.addWidget(self.punto_modificado)
-        layout_activo.addWidget(boton_cerrar)
-
-        layout_tab.addWidget(tab_activo)
         self.etiqueta_ruta = QLabel("")
         self.etiqueta_ruta.setObjectName("rutaArchivo")
         layout_tab.addWidget(self.etiqueta_ruta)
         layout_tab.addStretch()
 
         layout.addWidget(barra_tab)
-        layout.addWidget(self.editor)
+        self.pila_editores = QStackedWidget()   # un editor por pestaña
+        layout.addWidget(self.pila_editores)
+        self._crear_documento()                 # primera pestaña, en blanco
         return panel
+
+    # ---------------------------- Pestañas -----------------------------------
+    def _nombre_libre(self, excepto=None):
+        """Primer nombre 'Sin título', 'Sin título 2'... que no este en uso."""
+        usados = {d.nombre_nuevo for d in self._documentos if d.archivo is None and d is not excepto}
+        n = 1
+        while True:
+            nombre = "Sin título.txt" if n == 1 else f"Sin título {n}.txt"
+            if nombre not in usados:
+                return nombre
+            n += 1
+
+    def _crear_documento(self, sin_titulo=True):
+        """Crea una pestaña nueva con su propio editor y la deja activa."""
+        doc = _Documento(self._nombre_libre() if sin_titulo else "")
+        doc.editor.aplicar_tamano(self._tamano_editor)
+        doc.editor.cursorPositionChanged.connect(self._actualizar_posicion_cursor)
+        doc.editor.document().modificationChanged.connect(self._actualizar_titulo)
+        self._documentos.append(doc)
+        self.pila_editores.addWidget(doc.editor)
+
+        # Lado derecho de la pestaña: punto de cambios + boton cerrar
+        lado = QWidget()
+        lado.setObjectName("ladoPestana")
+        layout_lado = QHBoxLayout(lado)
+        layout_lado.setContentsMargins(6, 0, 0, 0)
+        layout_lado.setSpacing(6)
+        layout_lado.addWidget(doc.punto)
+        boton_cerrar = QToolButton()
+        boton_cerrar.setObjectName("btnCerrarTab")
+        boton_cerrar.setText("×")
+        boton_cerrar.setToolTip("Cerrar pestaña (Ctrl+W)")
+        boton_cerrar.clicked.connect(lambda: self.cerrar_pestana(doc))
+        layout_lado.addWidget(boton_cerrar)
+
+        self.barra_pestanas.blockSignals(True)
+        indice = self.barra_pestanas.addTab(_icono_barra("archivo", TEXTO_GRIS), doc.nombre)
+        self.barra_pestanas.setTabData(indice, doc)
+        self.barra_pestanas.setTabButton(indice, QTabBar.ButtonPosition.RightSide, lado)
+        self.barra_pestanas.blockSignals(False)
+        self.barra_pestanas.setCurrentIndex(indice)
+        self._al_cambiar_pestana(indice)
+        return doc
+
+    def _indice_de(self, doc):
+        for i in range(self.barra_pestanas.count()):
+            if self.barra_pestanas.tabData(i) is doc:
+                return i
+        return -1
+
+    def _al_cambiar_pestana(self, indice):
+        doc = self.barra_pestanas.tabData(indice) if indice >= 0 else None
+        if doc is None:
+            return
+        self.pila_editores.setCurrentWidget(doc.editor)
+        self._actualizar_titulo()
+        if hasattr(self, "etiqueta_cursor"):
+            self._actualizar_posicion_cursor()
+        if hasattr(self, "explorador"):
+            if doc.archivo:
+                self._seleccionar_en_explorador(doc.archivo)
+            else:
+                self.explorador.clearSelection()
+        doc.editor.setFocus()
+
+    def _cambiar_pestana(self, paso):
+        total = self.barra_pestanas.count()
+        if total > 1:
+            self.barra_pestanas.setCurrentIndex((self.barra_pestanas.currentIndex() + paso) % total)
+
+    def cerrar_pestana(self, doc=None):
+        """Cierra una pestaña (pregunta si tiene cambios). Siempre queda al menos una."""
+        doc = doc or self.documento
+        indice = self._indice_de(doc)
+        if indice < 0:
+            return False
+        if doc.modificado:
+            self.barra_pestanas.setCurrentIndex(indice)
+            if not self._confirmar_descartar(doc):
+                return False
+            indice = self._indice_de(doc)
+        if self._documento_ejecutado is doc:
+            self._documento_ejecutado = None
+            self._enlaces_consola = {}
+        self.barra_pestanas.removeTab(indice)
+        self.pila_editores.removeWidget(doc.editor)
+        doc.editor.deleteLater()
+        self._documentos.remove(doc)
+        if self.barra_pestanas.count() == 0:
+            self._crear_documento()
+        else:
+            self._al_cambiar_pestana(self.barra_pestanas.currentIndex())
+        return True
+
+    def _zoom(self, paso):
+        """Zoom igual para todas las pestañas."""
+        tamano = EditorCodigo.TAMANO_BASE if paso == 0 else self._tamano_editor + paso
+        self._tamano_editor = max(7, min(32, tamano))
+        for doc in self._documentos:
+            doc.editor.aplicar_tamano(self._tamano_editor)
 
     def _crear_panel_inferior(self):
         self.pestanas = QTabWidget()
         self.pestanas.setDocumentMode(True)
-        fuente_tabs = self.pestanas.tabBar().font()
-        fuente_tabs.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 0.8)
-        self.pestanas.tabBar().setFont(fuente_tabs)
+        # Sin fila de pestañas: se cambia de vista con los botones de la barra izquierda
+        self.pestanas.tabBar().hide()
 
         self.pestanas.addTab(self._crear_terminal(), "TERMINAL")
 
@@ -1662,84 +1885,14 @@ class VentanaIDE(QMainWindow):
         return self.pestanas
 
     def _crear_terminal(self):
-        """Una sola consola (como el panel Run de PyCharm): barra de iconos a
-        la izquierda y la salida con sus apartados."""
-        panel = QWidget()
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        # ----- Cuerpo: barra de iconos + consola -----
-        cuerpo = QHBoxLayout()
-        cuerpo.setContentsMargins(0, 0, 0, 0)
-        cuerpo.setSpacing(0)
-
-        barra = QFrame()
-        barra.setObjectName("barraConsola")
-        barra.setFixedWidth(42)
-        layout_barra = QVBoxLayout(barra)
-        layout_barra.setContentsMargins(5, 8, 5, 8)
-        layout_barra.setSpacing(4)
-
-        self.boton_ajuste = None
-        grupos = (
-            (("repetir", VERDE, "Ejecutar de nuevo (F5)", self.ejecutar_codigo),),
-            (("arriba", TEXTO_GRIS, "Ir al inicio de la consola", self._consola_al_inicio),
-             ("abajo", TEXTO_GRIS, "Ir al final de la consola", self._consola_al_final)),
-            (("ajuste", TEXTO_GRIS, "Ajustar líneas largas", self._alternar_ajuste_consola),
-             ("copiar", TEXTO_GRIS, "Copiar toda la salida", self._copiar_consola)),
-            (("limpiar", TEXTO_GRIS, "Limpiar consola", self._limpiar_salida),),
-        )
-        for indice, grupo in enumerate(grupos):
-            if indice:
-                separador = QFrame()
-                separador.setObjectName("separadorConsola")
-                separador.setFixedHeight(1)
-                layout_barra.addWidget(separador)
-            for tipo, color, tooltip, funcion in grupo:
-                boton = QToolButton()
-                boton.setIcon(_icono_barra(tipo, color))
-                boton.setIconSize(QSize(17, 17))
-                boton.setFixedSize(30, 30)
-                boton.setToolTip(tooltip)
-                boton.setCursor(Qt.CursorShape.PointingHandCursor)
-                if tipo == "ajuste":
-                    boton.setCheckable(True)
-                    boton.toggled.connect(funcion)
-                    self.boton_ajuste = boton
-                else:
-                    boton.clicked.connect(funcion)
-                layout_barra.addWidget(boton, 0, Qt.AlignmentFlag.AlignHCenter)
-        layout_barra.addStretch()
-        cuerpo.addWidget(barra)
-
+        """Una sola consola (como el panel Run de PyCharm) con la salida y sus apartados."""
         self.salida = QPlainTextEdit()
         self.salida.setObjectName("salidaTerminal")
         self.salida.setReadOnly(True)
         self.salida.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.salida.viewport().setMouseTracking(True)
         self.salida.viewport().installEventFilter(self)
-        cuerpo.addWidget(self.salida)
-
-        layout.addLayout(cuerpo)
-        return panel
-
-    # ---------------------------- Botones de la consola ----------------------
-    def _consola_al_inicio(self):
-        self.salida.moveCursor(QTextCursor.MoveOperation.Start)
-        self.salida.ensureCursorVisible()
-
-    def _consola_al_final(self):
-        self.salida.moveCursor(QTextCursor.MoveOperation.End)
-        self.salida.ensureCursorVisible()
-
-    def _alternar_ajuste_consola(self, activo):
-        modo = QPlainTextEdit.LineWrapMode.WidgetWidth if activo else QPlainTextEdit.LineWrapMode.NoWrap
-        self.salida.setLineWrapMode(modo)
-
-    def _copiar_consola(self):
-        QApplication.clipboard().setText(self.salida.toPlainText())
-        self._poner_estado("Salida de la consola copiada.", TEXTO)
+        return self.salida
 
     def _crear_barra_estado(self):
         """Barra de estado estilo PyCharm: ruta del archivo a la izquierda y
@@ -1781,7 +1934,7 @@ class VentanaIDE(QMainWindow):
             except ValueError:
                 partes = [self.archivo_actual.parent.name, self.archivo_actual.name]
         else:
-            partes = ["Sin título.txt"]
+            partes = [self.documento.nombre]
         partes = [RUTA_PROYECTO.name] + partes
         separador = f' <span style="color:{TEXTO_APAGADO}">›</span> '
         html = separador.join(
@@ -1822,22 +1975,18 @@ class VentanaIDE(QMainWindow):
                 return
 
     def alternar_explorador(self):
-        visible = not self.panel_explorador.isVisible()
-        self.panel_explorador.setVisible(visible)
+        visible = self.isla_explorador.isHidden()
+        self.isla_explorador.setVisible(visible)
         self.accion_explorador.setChecked(visible)
 
     def alternar_panel(self):
-        self.pestanas.setVisible(self.pestanas.isHidden())
+        self.isla_consola.setVisible(self.isla_consola.isHidden())
         self._sincronizar_herramientas()
 
     def _al_seleccionar_archivo(self, item, _columna):
         ruta = item.data(0, Qt.ItemDataRole.UserRole)
-        if not ruta or (self.archivo_actual and str(self.archivo_actual) == ruta):
-            return
-        if self._confirmar_descartar():
-            self._cargar_archivo(Path(ruta))
-        elif self.archivo_actual:
-            self._seleccionar_en_explorador(self.archivo_actual)
+        if ruta:
+            self._cargar_archivo(Path(ruta))     # se abre en su propia pestaña
 
     def _abrir_archivo_inicial(self):
         inicial = RUTA_EJEMPLOS / "ciclo_durante.txt"
@@ -1846,6 +1995,13 @@ class VentanaIDE(QMainWindow):
             self.ejecutar_codigo()
 
     def _cargar_archivo(self, archivo):
+        """Abre el archivo en una pestaña. Si ya estaba abierto, solo cambia a ella;
+        si la pestaña actual esta en blanco y sin tocar, la reutiliza."""
+        archivo = Path(archivo)
+        for doc in self._documentos:
+            if doc.archivo and doc.archivo.resolve() == archivo.resolve():
+                self.barra_pestanas.setCurrentIndex(self._indice_de(doc))
+                return
         try:
             datos = archivo.read_bytes()
             contenido = datos.decode("utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
@@ -1853,6 +2009,9 @@ class VentanaIDE(QMainWindow):
             QMessageBox.warning(self, "Error", f"No se pudo abrir el archivo:\n{error}")
             return
 
+        if not self.documento.esta_vacio():
+            self._crear_documento(sin_titulo=False)
+        self.documento.nombre_nuevo = ""
         self.editor.setPlainText(contenido)
         self.editor.document().setModified(False)
         self.archivo_actual = archivo
@@ -1861,32 +2020,41 @@ class VentanaIDE(QMainWindow):
         self._actualizar_titulo()
         self._poner_estado(f"Archivo abierto: {archivo.name}")
 
-    def _confirmar_descartar(self):
-        """Si hay cambios sin guardar pregunta que hacer. Devuelve True si se puede continuar."""
-        if not self.editor.document().isModified():
+    def _confirmar_descartar(self, doc=None):
+        """Si la pestaña tiene cambios sin guardar pregunta que hacer.
+        Devuelve True si se puede continuar."""
+        doc = doc or self.documento
+        if not doc.modificado:
             return True
-        nombre = self.archivo_actual.name if self.archivo_actual else "Sin título.txt"
         respuesta = QMessageBox.question(
             self,
             "Cambios sin guardar",
-            f"¿Deseas guardar los cambios de «{nombre}»?",
+            f"¿Deseas guardar los cambios de «{doc.nombre}»?",
             QMessageBox.StandardButton.Save
             | QMessageBox.StandardButton.Discard
             | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Save,
         )
         if respuesta == QMessageBox.StandardButton.Save:
+            self.barra_pestanas.setCurrentIndex(self._indice_de(doc))
             return self.guardar_archivo()
         return respuesta == QMessageBox.StandardButton.Discard
 
     def _actualizar_titulo(self, *_):
-        nombre = self.archivo_actual.name if self.archivo_actual else "Sin título.txt"
-        modificado = self.editor.document().isModified()
-        self.etiqueta_archivo.setText(nombre)
-        self.punto_modificado.setStyleSheet(
-            f"color: {AMARILLO if modificado else VERDE}; font-size: 11px;"
-        )
-        self.punto_modificado.setToolTip("Cambios sin guardar" if modificado else "Guardado")
+        if self.documento is None:
+            return
+        # Texto, tooltip y punto de cambios de cada pestaña
+        for i in range(self.barra_pestanas.count()):
+            doc = self.barra_pestanas.tabData(i)
+            if doc is None:
+                continue
+            self.barra_pestanas.setTabText(i, doc.nombre)
+            self.barra_pestanas.setTabToolTip(i, str(doc.archivo) if doc.archivo else doc.nombre)
+            doc.punto.setStyleSheet(f"color: {AMARILLO if doc.modificado else VERDE}; font-size: 11px;")
+            doc.punto.setToolTip("Cambios sin guardar" if doc.modificado else "Guardado")
+
+        nombre = self.documento.nombre
+        modificado = self.documento.modificado
         if self.archivo_actual:
             try:
                 ruta = self.archivo_actual.relative_to(RUTA_PROYECTO).parent.as_posix()
@@ -1901,20 +2069,12 @@ class VentanaIDE(QMainWindow):
             self.etiqueta_fin_linea.setText(self._fin_de_linea)
 
     def nuevo_documento(self):
-        if not self._confirmar_descartar():
-            return
-        self.editor.clear()
-        self.editor.document().setModified(False)
-        self.archivo_actual = None
-        self._fin_de_linea = self.FIN_DE_LINEA_SISTEMA
-        self.explorador.clearSelection()
-        self._actualizar_titulo()
+        """Nueva pestaña en blanco (boton "+", Ctrl+N o Ctrl+T)."""
+        self._crear_documento()
         self._poner_estado("Estado: Listo para analizar.")
         self.editor.setFocus()
 
     def abrir_archivo(self):
-        if not self._confirmar_descartar():
-            return
         ruta, _ = QFileDialog.getOpenFileName(
             self, "Abrir archivo", str(RUTA_EJEMPLOS),
             "Archivos de texto (*.txt);;Todos los archivos (*)",
@@ -1952,10 +2112,14 @@ class VentanaIDE(QMainWindow):
         return True
 
     def closeEvent(self, event):
-        if self._confirmar_descartar():
-            event.accept()
-        else:
-            event.ignore()
+        # Pregunta por cada pestaña que tenga cambios sin guardar
+        for doc in list(self._documentos):
+            if doc.modificado:
+                self.barra_pestanas.setCurrentIndex(self._indice_de(doc))
+                if not self._confirmar_descartar(doc):
+                    event.ignore()
+                    return
+        event.accept()
 
     # ---------------------------- Edicion y busqueda -------------------------
     def editor_copiar(self):
@@ -2079,7 +2243,7 @@ class VentanaIDE(QMainWindow):
 
     # ---------------------------- Consola: errores ---------------------------
     def _nombre_archivo(self):
-        return self.archivo_actual.name if self.archivo_actual else "Sin título.txt"
+        return self.documento.nombre
 
     @staticmethod
     def _texto_error(error):
@@ -2172,8 +2336,14 @@ class VentanaIDE(QMainWindow):
         self.arbol_sintactico.expandAll()
 
     def _actualizar_titulos_pestanas(self, tokens, simbolos):
-        self.pestanas.setTabText(3, f"TOKENS ({tokens})" if tokens else "TOKENS")
-        self.pestanas.setTabText(4, f"TABLA DE SÍMBOLOS ({simbolos})" if simbolos else "TABLA DE SÍMBOLOS")
+        """Los conteos se muestran en el tooltip de cada boton de la barra izquierda."""
+        conteos = {3: tokens, 4: simbolos}
+        for boton, indice in getattr(self, "botones_herramientas", []):
+            nombre = next(n for _, n, i in self.HERRAMIENTAS_EYKOL if i == indice)
+            cantidad = conteos.get(indice)
+            texto = f"{nombre} ({cantidad})" if cantidad else nombre
+            boton.defaultAction().setToolTip(texto)
+            boton.setToolTip(texto)
 
     # ---------------------------- Compilacion --------------------------------
     def ejecutar_codigo(self):
@@ -2206,6 +2376,7 @@ class VentanaIDE(QMainWindow):
 
         # ----- Consola: comando, salida, errores y estado (todo en una) -----
         self._limpiar_salida()
+        self._documento_ejecutado = self.documento
         self._escribir_linea(("> ", MORADO, True), (comando, TEXTO_APAGADO))
         if not ejecutar:
             self._escribir_linea(("(solo análisis: el programa no se ejecutó)", TEXTO_APAGADO))
@@ -2246,7 +2417,7 @@ class VentanaIDE(QMainWindow):
         if errores:
             self.etiqueta_errores_estado.setStyleSheet(f"padding: 0px 10px; color: {ROJO};")
             self.etiqueta_errores_estado.setText(f"✗ {len(errores)} error(es)")
-            if self.pestanas.isHidden():
+            if self.isla_consola.isHidden():
                 self.alternar_panel()
             self.pestanas.setCurrentIndex(0)
         else:
