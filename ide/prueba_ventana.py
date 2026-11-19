@@ -250,30 +250,6 @@ QTabBar::tab:hover:!selected {{
     color: #FFFFFF;
 }}
 /* ---------- Consola (una sola, estilo PyCharm) ---------- */
-QFrame#cabeceraConsola {{
-    background-color: {FONDO};
-    border-bottom: 1px solid {BORDE};
-}}
-QFrame#cabeceraConsola QLabel {{
-    background: transparent;
-}}
-QLabel#tituloConsola {{
-    color: {TEXTO};
-    font-weight: 600;
-}}
-QFrame#chipConsola {{
-    background-color: {FONDO_BARRA};
-    border: 1px solid {BORDE};
-    border-radius: 6px;
-}}
-QFrame#chipConsola QLabel {{
-    color: {TEXTO_SUAVE};
-}}
-QToolButton#cerrarChip {{
-    color: {TEXTO_GRIS};
-    font-size: 13px;
-    padding: 0px 3px;
-}}
 QFrame#barraConsola {{
     background-color: {FONDO};
     border-right: 1px solid {BORDE};
@@ -1322,44 +1298,12 @@ class VentanaIDE(QMainWindow):
         return self.pestanas
 
     def _crear_terminal(self):
-        """Una sola consola (como el panel Run de PyCharm): cabecera arriba,
-        barra de iconos a la izquierda y la salida con sus apartados."""
+        """Una sola consola (como el panel Run de PyCharm): barra de iconos a
+        la izquierda y la salida con sus apartados."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-
-        # ----- Cabecera: "Ejecutar" + pestaña con el archivo ejecutado -----
-        cabecera = QFrame()
-        cabecera.setObjectName("cabeceraConsola")
-        cabecera.setFixedHeight(40)
-        layout_cab = QHBoxLayout(cabecera)
-        layout_cab.setContentsMargins(14, 0, 10, 0)
-        layout_cab.setSpacing(14)
-
-        titulo = QLabel("Ejecutar")
-        titulo.setObjectName("tituloConsola")
-        layout_cab.addWidget(titulo)
-
-        chip = QFrame()
-        chip.setObjectName("chipConsola")
-        layout_chip = QHBoxLayout(chip)
-        layout_chip.setContentsMargins(8, 2, 3, 2)
-        layout_chip.setSpacing(6)
-        icono = QLabel()
-        icono.setPixmap(_dibujar_icono("archivo", TEXTO_GRIS, 14))
-        self.etiqueta_consola = QLabel("Sin título.txt")
-        boton_cerrar = QToolButton()
-        boton_cerrar.setObjectName("cerrarChip")
-        boton_cerrar.setText("×")
-        boton_cerrar.setToolTip("Limpiar consola")
-        boton_cerrar.clicked.connect(self._limpiar_salida)
-        layout_chip.addWidget(icono)
-        layout_chip.addWidget(self.etiqueta_consola)
-        layout_chip.addWidget(boton_cerrar)
-        layout_cab.addWidget(chip)
-        layout_cab.addStretch()
-        layout.addWidget(cabecera)
 
         # ----- Cuerpo: barra de iconos + consola -----
         cuerpo = QHBoxLayout()
@@ -1844,7 +1788,6 @@ class VentanaIDE(QMainWindow):
 
         # ----- Consola: comando, salida, errores y estado (todo en una) -----
         self._limpiar_salida()
-        self.etiqueta_consola.setText(self._nombre_archivo())
         self._escribir_linea(("> ", MORADO, True), (self._comando_terminal(), TEXTO_APAGADO))
         for linea in resultado.salida:
             self._escribir_linea((str(linea), TEXTO))
