@@ -29,8 +29,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
@@ -251,56 +249,40 @@ QTabBar::tab:selected {{
 QTabBar::tab:hover:!selected {{
     color: #FFFFFF;
 }}
-QFrame#cabeceraPanel {{
+/* ---------- Consola (una sola, estilo PyCharm) ---------- */
+QFrame#cabeceraConsola {{
     background-color: {FONDO};
     border-bottom: 1px solid {BORDE};
 }}
-QFrame#cabeceraPanel QLabel {{
+QFrame#cabeceraConsola QLabel {{
     background: transparent;
 }}
-QLabel#tituloPanel {{
+QLabel#tituloConsola {{
+    color: {TEXTO};
+    font-weight: 600;
+}}
+QFrame#chipConsola {{
+    background-color: {FONDO_BARRA};
+    border: 1px solid {BORDE};
+    border-radius: 6px;
+}}
+QFrame#chipConsola QLabel {{
+    color: {TEXTO_SUAVE};
+}}
+QToolButton#cerrarChip {{
     color: {TEXTO_GRIS};
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 13px;
+    padding: 0px 3px;
 }}
-QLabel#badgeErrores {{
-    background-color: {ROJO};
-    color: {FONDO};
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 0px 6px;
-}}
-QListWidget#listaErrores {{
+QFrame#barraConsola {{
     background-color: {FONDO};
-    border: none;
-    outline: none;
-    padding: 4px;
+    border-right: 1px solid {BORDE};
 }}
-QListWidget#listaErrores::item {{
-    border-radius: 5px;
-}}
-QListWidget#listaErrores::item:hover {{
-    background-color: #1F2130;
-}}
-QListWidget#listaErrores::item:selected {{
+QFrame#barraConsola QToolButton:checked {{
     background-color: #252338;
 }}
-QWidget#itemError, QWidget#itemError QLabel {{
-    background: transparent;
-}}
-QLabel#mensajeError {{
-    color: {ROJO};
-    font-family: {FUENTE_MONO};
-    font-size: 10pt;
-}}
-QLabel#sugerenciaError {{
-    color: {TEXTO_GRIS};
-    font-size: 12px;
-}}
-QLabel#ubicacionError {{
-    color: {TEXTO_APAGADO};
-    font-size: 12px;
+QFrame#separadorConsola {{
+    background-color: {BORDE};
 }}
 QTreeWidget#arbolSintactico {{
     background-color: {FONDO};
@@ -523,12 +505,34 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         p.drawLine(QPointF(8.5, 8.5), QPointF(15.5, 15.5))
         p.drawLine(QPointF(15.5, 8.5), QPointF(8.5, 15.5))
 
-    elif tipo == "ok":
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(VERDE_SUAVE))
-        p.drawEllipse(QRectF(2, 2, 20, 20))
-        p.setPen(QPen(QColor(FONDO), 2.4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
-        ruta((7.5, 12.5), (10.5, 15.5), (16.5, 9))
+    elif tipo == "repetir":
+        camino = QPainterPath()
+        camino.arcMoveTo(QRectF(5, 5, 14, 14), 50)
+        camino.arcTo(QRectF(5, 5, 14, 14), 50, 290)
+        p.drawPath(camino)
+        ruta((16.5, 3), (16.5, 7.5), (12, 7.5))
+
+    elif tipo == "arriba":
+        p.drawLine(QPointF(12, 19), QPointF(12, 5))
+        ruta((6.5, 10.5), (12, 5), (17.5, 10.5))
+
+    elif tipo == "abajo":
+        p.drawLine(QPointF(12, 5), QPointF(12, 19))
+        ruta((6.5, 13.5), (12, 19), (17.5, 13.5))
+
+    elif tipo == "ajuste":
+        p.drawLine(QPointF(4, 6), QPointF(20, 6))
+        camino = QPainterPath(QPointF(4, 12))
+        camino.lineTo(QPointF(16, 12))
+        camino.cubicTo(QPointF(20.5, 12), QPointF(20.5, 18), QPointF(16, 18))
+        camino.lineTo(QPointF(11, 18))
+        p.drawPath(camino)
+        ruta((13.5, 15.5), (11, 18), (13.5, 20.5))
+        p.drawLine(QPointF(4, 18), QPointF(7, 18))
+
+    elif tipo == "copiar":
+        p.drawRoundedRect(QRectF(9, 9, 11, 11), 2, 2)
+        ruta((15, 5.5), (15, 5), (5, 5), (5, 15), (5.5, 15))
 
     p.end()
     return pixmap
@@ -1004,65 +1008,6 @@ class ResaltadorIntermedio(QSyntaxHighlighter):
 
 
 # =============================================================================
-# Paneles de la consola
-# =============================================================================
-class _ItemError(QWidget):
-    """Fila del panel de errores: icono rojo, mensaje y ubicacion."""
-
-    def __init__(self, mensaje, ubicacion, sugerencia=None):
-        super().__init__()
-        self.setObjectName("itemError")
-        self.setToolTip(mensaje + (f"\n\nSugerencia: {sugerencia}" if sugerencia else ""))
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 7, 10, 7)
-        layout.setSpacing(10)
-
-        icono = QLabel()
-        icono.setPixmap(_dibujar_icono("error", tamano=16))
-        icono.setFixedSize(16, 18)
-        icono.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(icono, 0, Qt.AlignmentFlag.AlignTop)
-
-        textos = QVBoxLayout()
-        textos.setSpacing(2)
-        etiqueta_mensaje = QLabel(mensaje)
-        etiqueta_mensaje.setObjectName("mensajeError")
-        textos.addWidget(etiqueta_mensaje)
-        if sugerencia:
-            etiqueta_sugerencia = QLabel(f"Sugerencia: {sugerencia}")
-            etiqueta_sugerencia.setObjectName("sugerenciaError")
-            textos.addWidget(etiqueta_sugerencia)
-        if ubicacion:
-            etiqueta_ubicacion = QLabel(ubicacion)
-            etiqueta_ubicacion.setObjectName("ubicacionError")
-            textos.addWidget(etiqueta_ubicacion)
-        layout.addLayout(textos, 1)
-
-
-def _cabecera_panel(titulo, color_punto):
-    """Crea la barra de titulo de un panel (punto de color + TITULO)."""
-    cabecera = QFrame()
-    cabecera.setObjectName("cabeceraPanel")
-    cabecera.setFixedHeight(34)
-    layout = QHBoxLayout(cabecera)
-    layout.setContentsMargins(12, 0, 6, 0)
-    layout.setSpacing(8)
-
-    punto = QLabel("●")
-    punto.setStyleSheet(f"color: {color_punto}; font-size: 10px;")
-    layout.addWidget(punto)
-
-    etiqueta = QLabel(titulo)
-    etiqueta.setObjectName("tituloPanel")
-    fuente = etiqueta.font()
-    fuente.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.2)
-    etiqueta.setFont(fuente)
-    layout.addWidget(etiqueta)
-
-    return cabecera, layout, punto
-
-
-# =============================================================================
 # Ventana principal
 # =============================================================================
 class VentanaIDE(QMainWindow):
@@ -1077,6 +1022,7 @@ class VentanaIDE(QMainWindow):
 
         self.archivo_actual = None
         self._errores_actuales = []
+        self._enlaces_consola = {}    # bloque de la consola -> (linea, columna) del error
 
         self.editor = EditorCodigo()
         self.resaltador = ResaltadorEYKOL(self.editor.document())
@@ -1089,7 +1035,7 @@ class VentanaIDE(QMainWindow):
         self._crear_barra_estado()
 
         self._cargar_explorador()
-        self._mostrar_errores([])
+        self._mensaje_inicial_consola()
         self._actualizar_titulo()
         self._abrir_archivo_inicial()
 
@@ -1205,6 +1151,19 @@ class VentanaIDE(QMainWindow):
             if evento.key() == Qt.Key.Key_Escape:
                 self.editor.setFocus()
                 return True
+
+        # Consola: las ubicaciones de error son enlaces que llevan a la linea
+        if hasattr(self, "salida") and objeto is self.salida.viewport():
+            tipo = evento.type()
+            if tipo in (evento.Type.MouseMove, evento.Type.MouseButtonRelease):
+                bloque = self.salida.cursorForPosition(evento.position().toPoint()).blockNumber()
+                enlace = self._enlaces_consola.get(bloque)
+                if tipo == evento.Type.MouseMove:
+                    forma = Qt.CursorShape.PointingHandCursor if enlace else Qt.CursorShape.IBeamCursor
+                    self.salida.viewport().setCursor(forma)
+                elif (enlace and evento.button() == Qt.MouseButton.LeftButton
+                      and not self.salida.textCursor().hasSelection()):
+                    self.editor.ir_a(*enlace)
         return super().eventFilter(objeto, evento)
 
     # ---------------------------- Interfaz principal -------------------------
@@ -1363,66 +1322,116 @@ class VentanaIDE(QMainWindow):
         return self.pestanas
 
     def _crear_terminal(self):
-        divisor = QSplitter(Qt.Orientation.Horizontal)
-        divisor.setHandleWidth(1)
-        divisor.setChildrenCollapsible(False)
+        """Una sola consola (como el panel Run de PyCharm): cabecera arriba,
+        barra de iconos a la izquierda y la salida con sus apartados."""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # ----- Salida -----
-        panel_salida = QWidget()
-        layout_salida = QVBoxLayout(panel_salida)
-        layout_salida.setContentsMargins(0, 0, 0, 0)
-        layout_salida.setSpacing(0)
+        # ----- Cabecera: "Ejecutar" + pestaña con el archivo ejecutado -----
+        cabecera = QFrame()
+        cabecera.setObjectName("cabeceraConsola")
+        cabecera.setFixedHeight(40)
+        layout_cab = QHBoxLayout(cabecera)
+        layout_cab.setContentsMargins(14, 0, 10, 0)
+        layout_cab.setSpacing(14)
 
-        cabecera, layout_cab, _ = _cabecera_panel("SALIDA", VERDE)
+        titulo = QLabel("Ejecutar")
+        titulo.setObjectName("tituloConsola")
+        layout_cab.addWidget(titulo)
+
+        chip = QFrame()
+        chip.setObjectName("chipConsola")
+        layout_chip = QHBoxLayout(chip)
+        layout_chip.setContentsMargins(8, 2, 3, 2)
+        layout_chip.setSpacing(6)
+        icono = QLabel()
+        icono.setPixmap(_dibujar_icono("archivo", TEXTO_GRIS, 14))
+        self.etiqueta_consola = QLabel("Sin título.txt")
+        boton_cerrar = QToolButton()
+        boton_cerrar.setObjectName("cerrarChip")
+        boton_cerrar.setText("×")
+        boton_cerrar.setToolTip("Limpiar consola")
+        boton_cerrar.clicked.connect(self._limpiar_salida)
+        layout_chip.addWidget(icono)
+        layout_chip.addWidget(self.etiqueta_consola)
+        layout_chip.addWidget(boton_cerrar)
+        layout_cab.addWidget(chip)
         layout_cab.addStretch()
-        layout_cab.addWidget(self._boton_limpiar_panel("Limpiar salida", self._limpiar_salida))
-        layout_salida.addWidget(cabecera)
+        layout.addWidget(cabecera)
+
+        # ----- Cuerpo: barra de iconos + consola -----
+        cuerpo = QHBoxLayout()
+        cuerpo.setContentsMargins(0, 0, 0, 0)
+        cuerpo.setSpacing(0)
+
+        barra = QFrame()
+        barra.setObjectName("barraConsola")
+        barra.setFixedWidth(42)
+        layout_barra = QVBoxLayout(barra)
+        layout_barra.setContentsMargins(5, 8, 5, 8)
+        layout_barra.setSpacing(4)
+
+        self.boton_ajuste = None
+        grupos = (
+            (("repetir", VERDE, "Ejecutar de nuevo (F5)", self.ejecutar_codigo),),
+            (("arriba", TEXTO_GRIS, "Ir al inicio de la consola", self._consola_al_inicio),
+             ("abajo", TEXTO_GRIS, "Ir al final de la consola", self._consola_al_final)),
+            (("ajuste", TEXTO_GRIS, "Ajustar líneas largas", self._alternar_ajuste_consola),
+             ("copiar", TEXTO_GRIS, "Copiar toda la salida", self._copiar_consola)),
+            (("limpiar", TEXTO_GRIS, "Limpiar consola", self._limpiar_salida),),
+        )
+        for indice, grupo in enumerate(grupos):
+            if indice:
+                separador = QFrame()
+                separador.setObjectName("separadorConsola")
+                separador.setFixedHeight(1)
+                layout_barra.addWidget(separador)
+            for tipo, color, tooltip, funcion in grupo:
+                boton = QToolButton()
+                boton.setIcon(_icono_barra(tipo, color))
+                boton.setIconSize(QSize(17, 17))
+                boton.setFixedSize(30, 30)
+                boton.setToolTip(tooltip)
+                boton.setCursor(Qt.CursorShape.PointingHandCursor)
+                if tipo == "ajuste":
+                    boton.setCheckable(True)
+                    boton.toggled.connect(funcion)
+                    self.boton_ajuste = boton
+                else:
+                    boton.clicked.connect(funcion)
+                layout_barra.addWidget(boton, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout_barra.addStretch()
+        cuerpo.addWidget(barra)
 
         self.salida = QPlainTextEdit()
         self.salida.setObjectName("salidaTerminal")
         self.salida.setReadOnly(True)
         self.salida.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        layout_salida.addWidget(self.salida)
+        self.salida.viewport().setMouseTracking(True)
+        self.salida.viewport().installEventFilter(self)
+        cuerpo.addWidget(self.salida)
 
-        # ----- Errores -----
-        panel_errores = QWidget()
-        layout_errores = QVBoxLayout(panel_errores)
-        layout_errores.setContentsMargins(0, 0, 0, 0)
-        layout_errores.setSpacing(0)
+        layout.addLayout(cuerpo)
+        return panel
 
-        cabecera, layout_cab, self.punto_errores = _cabecera_panel("ERRORES", ROJO)
-        self.badge_errores = QLabel("0")
-        self.badge_errores.setObjectName("badgeErrores")
-        self.badge_errores.setFixedHeight(16)
-        self.badge_errores.setMinimumWidth(16)
-        self.badge_errores.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout_cab.addWidget(self.badge_errores)
-        layout_cab.addStretch()
-        layout_cab.addWidget(self._boton_limpiar_panel("Limpiar errores", self._limpiar_errores))
-        layout_errores.addWidget(cabecera)
+    # ---------------------------- Botones de la consola ----------------------
+    def _consola_al_inicio(self):
+        self.salida.moveCursor(QTextCursor.MoveOperation.Start)
+        self.salida.ensureCursorVisible()
 
-        self.lista_errores = QListWidget()
-        self.lista_errores.setObjectName("listaErrores")
-        self.lista_errores.setToolTip("Haz clic en un error para ir a esa línea")
-        self.lista_errores.itemClicked.connect(self._ir_a_error)
-        self.lista_errores.itemActivated.connect(self._ir_a_error)
-        layout_errores.addWidget(self.lista_errores)
+    def _consola_al_final(self):
+        self.salida.moveCursor(QTextCursor.MoveOperation.End)
+        self.salida.ensureCursorVisible()
 
-        divisor.addWidget(panel_salida)
-        divisor.addWidget(panel_errores)
-        divisor.setSizes([560, 440])
-        return divisor
+    def _alternar_ajuste_consola(self, activo):
+        modo = QPlainTextEdit.LineWrapMode.WidgetWidth if activo else QPlainTextEdit.LineWrapMode.NoWrap
+        self.salida.setLineWrapMode(modo)
 
-    @staticmethod
-    def _boton_limpiar_panel(tooltip, funcion):
-        boton = QToolButton()
-        boton.setIcon(_icono_barra("limpiar", TEXTO_GRIS))
-        boton.setIconSize(QSize(15, 15))
-        boton.setFixedSize(26, 26)
-        boton.setToolTip(tooltip)
-        boton.setCursor(Qt.CursorShape.PointingHandCursor)
-        boton.clicked.connect(funcion)
-        return boton
+    def _copiar_consola(self):
+        QApplication.clipboard().setText(self.salida.toPlainText())
+        self._poner_estado("Salida de la consola copiada.", TEXTO)
 
     def _crear_barra_estado(self):
         barra = self.statusBar()
@@ -1654,7 +1663,7 @@ class VentanaIDE(QMainWindow):
         self.editor.document().setModified(False)
         self.campo_buscar.clear()
         self._limpiar_salida()
-        self._mostrar_errores([])
+        self._mensaje_inicial_consola()
         self.codigo_intermedio.clear()
         self.arbol_sintactico.clear()
         self.archivo_actual = None
@@ -1678,7 +1687,8 @@ class VentanaIDE(QMainWindow):
 
     # ---------------------------- Consola: salida ----------------------------
     def _escribir_linea(self, *segmentos):
-        """Agrega una linea a la salida. Cada segmento es (texto, color[, negrita])."""
+        """Agrega una linea a la consola y regresa su numero de bloque.
+        Cada segmento es (texto, color[, negrita[, subrayado]])."""
         cursor = self.salida.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
         if not self.salida.document().isEmpty():
@@ -1686,15 +1696,24 @@ class VentanaIDE(QMainWindow):
         for segmento in segmentos:
             texto, color = segmento[0], segmento[1]
             negrita = len(segmento) > 2 and segmento[2]
+            subrayado = len(segmento) > 3 and segmento[3]
             formato = QTextCharFormat()
             formato.setForeground(QColor(color))
             formato.setFontWeight(QFont.Weight.Bold if negrita else QFont.Weight.Normal)
+            formato.setFontUnderline(bool(subrayado))
             cursor.insertText(texto, formato)
         self.salida.setTextCursor(cursor)
         self.salida.ensureCursorVisible()
+        return cursor.blockNumber()
 
     def _limpiar_salida(self):
         self.salida.clear()
+        self._enlaces_consola = {}
+
+    def _mensaje_inicial_consola(self):
+        self._limpiar_salida()
+        self._escribir_linea(("> ", MORADO, True),
+                             ("Ejecuta el código (F5) para ver aquí la salida y los errores", TEXTO_APAGADO))
 
     def _comando_terminal(self):
         if self.archivo_actual is not None:
@@ -1717,64 +1736,27 @@ class VentanaIDE(QMainWindow):
             return f"Error {fase.lower()}: {mensaje}"
         return str(error)
 
-    def _mostrar_errores(self, errores, ejecutado=False):
+    def _escribir_errores(self, errores):
+        """Apartado ERRORES dentro de la misma consola. Cada ubicacion es un
+        enlace: al hacer clic lleva a esa linea del editor."""
         self._errores_actuales = list(errores)
-        self.lista_errores.clear()
-        total = len(errores)
-
-        self.badge_errores.setText(str(total))
-        self.badge_errores.setVisible(total > 0)
-        self.punto_errores.setStyleSheet(
-            f"color: {ROJO if total else TEXTO_APAGADO}; font-size: 10px;"
-        )
-
-        # Primera linea del panel: el estado, escrito como linea de consola
-        if not ejecutado:
-            self._linea_consola_errores("> Ejecuta el código (F5) para ver aquí los errores", TEXTO_APAGADO)
-        elif errores:
-            self._linea_consola_errores(
-                f"✗ Estado: Código inválido ({total} error(es) detectado(s))", ROJO
-            )
-        else:
-            self._linea_consola_errores("✓ Estado: Código válido (sin errores)", VERDE_SUAVE)
         if not errores:
             return
-
+        self._escribir_linea(("", TEXTO))
+        self._escribir_linea((f"──────── ERRORES ({len(errores)}) ────────", ROJO, True))
         nombre = self._nombre_archivo()
         for error in errores:
             linea = getattr(error, "linea", None)
             columna = getattr(error, "columna", None)
-            if linea and columna:
-                ubicacion = f"{nombre}   [Ln {linea}, Col {columna}]"
-            elif linea:
-                ubicacion = f"{nombre}   [Ln {linea}]"
+            self._escribir_linea(("✗ ", ROJO, True), (self._texto_error(error), ROJO))
+            if linea:
+                posicion = f"Ln {linea}, Col {columna}" if columna else f"Ln {linea}"
+                bloque = self._escribir_linea(("    ", TEXTO), (f"{nombre} [{posicion}]", AZUL, False, True))
+                self._enlaces_consola[bloque] = (linea, columna)
             else:
-                ubicacion = f"{nombre}   [fase: {getattr(error, 'fase', '—')}]"
-
-            widget = _ItemError(self._texto_error(error), ubicacion, getattr(error, "sugerencia", None))
-            item = QListWidgetItem()
-            item.setData(Qt.ItemDataRole.UserRole, (linea, columna))
-            item.setSizeHint(widget.sizeHint())
-            self.lista_errores.addItem(item)
-            self.lista_errores.setItemWidget(item, widget)
-
-    def _linea_consola_errores(self, texto, color):
-        """Agrega al panel de errores una linea con letra de consola (no seleccionable)."""
-        item = QListWidgetItem(texto)
-        item.setFlags(Qt.ItemFlag.NoItemFlags)
-        item.setFont(QFont("Consolas", 10))
-        item.setForeground(QColor(color))
-        item.setSizeHint(QSize(0, 30))
-        self.lista_errores.addItem(item)
-
-    def _limpiar_errores(self):
-        self._mostrar_errores([])
-        self.editor.limpiar_errores()
-
-    def _ir_a_error(self, item):
-        datos = item.data(Qt.ItemDataRole.UserRole)
-        if datos and datos[0]:
-            self.editor.ir_a(datos[0], datos[1])
+                self._escribir_linea((f"    {nombre} [fase: {getattr(error, 'fase', '—')}]", TEXTO_APAGADO))
+            if getattr(error, "sugerencia", None):
+                self._escribir_linea((f"    Sugerencia: {error.sugerencia}", TEXTO_GRIS))
 
     # ---------------------------- Paneles de analisis ------------------------
     def _llenar_arbol(self, arbol):
@@ -1860,31 +1842,29 @@ class VentanaIDE(QMainWindow):
 
         errores = list(resultado.errores)
 
-        # ----- Salida (con colores) -----
+        # ----- Consola: comando, salida, errores y estado (todo en una) -----
         self._limpiar_salida()
+        self.etiqueta_consola.setText(self._nombre_archivo())
         self._escribir_linea(("> ", MORADO, True), (self._comando_terminal(), TEXTO_APAGADO))
         for linea in resultado.salida:
             self._escribir_linea((str(linea), TEXTO))
         if not resultado.salida and not errores:
             self._escribir_linea(("(el programa no mostró nada)", TEXTO_APAGADO))
 
+        self._escribir_errores(errores)
+
         self._escribir_linea(("", TEXTO))
         if errores:
-            for error in errores:
-                self._escribir_linea(("✗ ", ROJO, True), (self._texto_error(error), ROJO))
-                if getattr(error, "sugerencia", None):
-                    self._escribir_linea(("  → " + error.sugerencia, TEXTO_GRIS))
             self._escribir_linea(
-                (f"Proceso terminado con {len(errores)} error(es) en {milisegundos:.0f} ms", ROJO, True)
+                (f"✗ Estado: Código inválido ({len(errores)} error(es) detectado(s))", ROJO, True)
             )
         else:
-            self._escribir_linea(
-                ("✓ ", VERDE_SUAVE, True),
-                (f"Proceso terminado correctamente en {milisegundos:.0f} ms", VERDE_SUAVE, True),
-            )
+            self._escribir_linea(("✓ Estado: Código válido (sin errores)", VERDE_SUAVE, True))
+        self._escribir_linea(
+            (f"Proceso terminado con código de salida {1 if errores else 0} ({milisegundos:.0f} ms)",
+             TEXTO_APAGADO)
+        )
 
-        # ----- Errores -----
-        self._mostrar_errores(errores, ejecutado=True)
         self.editor.marcar_errores(
             [(getattr(e, "linea", None), getattr(e, "columna", None)) for e in errores]
         )
