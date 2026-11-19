@@ -1625,7 +1625,7 @@ class VentanaIDE(QMainWindow):
 
         layout_principal.addWidget(self._crear_rail())
 
-        # Explorador, editor y consola como "islas" separadas, como en PyCharm
+        # Explorador, editor y consola como "islas" separadas
         zona_islas = QWidget()
         zona_islas.setObjectName("zonaIslas")
         layout_islas = QVBoxLayout(zona_islas)
