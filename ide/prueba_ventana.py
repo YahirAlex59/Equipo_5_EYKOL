@@ -1305,7 +1305,7 @@ class VentanaIDE(QMainWindow):
         return accion
 
     def _crear_acciones(self):
-        # --- Barra izquierda (estilo PyCharm, iconos de contorno) ---
+        # --- Barra izquierda (iconos de contorno) ---
         self.accion_nuevo = self._accion(_icono_barra("nuevo"), "Nuevo documento", "Ctrl+N", self.nuevo_documento)
         self.accion_explorador = self._accion(_icono_barra("abrir"), "Explorador", "Ctrl+B",
                                               self.alternar_explorador)
@@ -1377,7 +1377,7 @@ class VentanaIDE(QMainWindow):
         barra.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.addToolBar(barra)
 
-        # ----- Izquierda: logo, menu principal, proyecto y rama (como PyCharm) -----
+        # ----- Izquierda: logo, menu principal, proyecto y rama  -----
         barra.addWidget(_LogoEYKOL())
 
         # ☰ despliega la barra de menus en la misma linea
