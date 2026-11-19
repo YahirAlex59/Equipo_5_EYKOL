@@ -27,6 +27,7 @@
 - **Lógicos:** `&&` (AND), `||` (OR), `!` (NOT)
 - **Comentarios:**
   - Una línea: `// comentario`
+  - Una linea: `# comentario`
   - Varias líneas: `/* comentario */`
 
 ---
