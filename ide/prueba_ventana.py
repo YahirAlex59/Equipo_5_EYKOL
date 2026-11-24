@@ -1,17 +1,13 @@
-import os
 import sys
-import time
 from pathlib import Path
 
-from PyQt6.QtCore import QPoint, QPointF, QRect, QRectF, QRegularExpression, QSize, Qt
+from PyQt6.QtCore import QPointF, QPoint, QRect, QRectF, QRegularExpression, QSize, Qt
 from PyQt6.QtGui import (
     QAction,
-    QBrush,
     QColor,
     QFont,
     QIcon,
     QKeySequence,
-    QLinearGradient,
     QPainter,
     QPainterPath,
     QPalette,
@@ -198,15 +194,6 @@ QToolButton#btnEjecutar:hover {{
 QFrame#separadorBarra {{
     background-color: {BORDE};
 }}
-QToolButton#selectorBarra {{
-    color: {TEXTO};
-    font-weight: 600;
-    padding: 4px 8px;
-}}
-QLabel#ramaGit {{
-    color: {TEXTO_GRIS};
-    padding: 0px 6px;
-}}
 QLineEdit#campoBuscar {{
     background-color: {FONDO};
     color: {TEXTO};
@@ -218,19 +205,12 @@ QLineEdit#campoBuscar:focus {{
     border: 1px solid {MORADO};
 }}
 
-/* ---------- Franja lateral y explorador (igual que antes) ---------- */
+/* ---------- Franja lateral y explorador ---------- */
 QFrame#railLateral {{
     background-color: {FONDO_LATERAL};
     border-right: 1px solid {BORDE};
 }}
 QFrame#railLateral QToolButton:checked {{
-    background-color: #252338;
-}}
-QFrame#railDerecho {{
-    background-color: {FONDO_LATERAL};
-    border-left: 1px solid {BORDE};
-}}
-QFrame#railDerecho QToolButton:checked {{
     background-color: #252338;
 }}
 QFrame#panelExplorador {{
@@ -335,8 +315,8 @@ QPlainTextEdit#codigoIntermedio {{
 }}
 QPlainTextEdit#salidaTerminal {{
     font-family: {FUENTE_MONO};
-    font-size: 11pt;
-    padding: 12px 20px;
+    font-size: 10.5pt;
+    padding: 10px 14px;
 }}
 
 /* ---------- Barras de desplazamiento delgadas (mismos colores del tema) ---------- */
@@ -391,9 +371,31 @@ QFrame#isla {{
 }}
 
 /* ---------- Panel inferior ---------- */
-QTabWidget::pane {{
+QTabWidget#panelInferior::pane {{
     border: none;
+    border-top: 1px solid {BORDE};
     background-color: {FONDO};
+}}
+QTabWidget#panelInferior > QTabBar {{
+    background-color: {FONDO_BARRA};
+}}
+QTabWidget#panelInferior > QTabBar::tab {{
+    background-color: {FONDO_BARRA};
+    color: {TEXTO_GRIS};
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border: none;
+    border-right: 1px solid {BORDE};
+    border-top: 2px solid transparent;
+}}
+QTabWidget#panelInferior > QTabBar::tab:selected {{
+    background-color: {FONDO};
+    color: {TEXTO};
+    border-top: 2px solid {MORADO};
+}}
+QTabWidget#panelInferior > QTabBar::tab:hover:!selected {{
+    color: #FFFFFF;
 }}
 QTreeWidget#arbolSintactico {{
     background-color: {FONDO};
@@ -540,26 +542,6 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         p.drawLine(QPointF(9, 12), QPointF(15, 12))
         p.drawLine(QPointF(9, 16), QPointF(15, 16))
 
-
-    elif tipo == "campana":
-        camino = QPainterPath(QPointF(6, 16.5))
-        camino.lineTo(QPointF(6, 11))
-        camino.cubicTo(QPointF(6, 7.2), QPointF(8.7, 4.8), QPointF(12, 4.8))
-        camino.cubicTo(QPointF(15.3, 4.8), QPointF(18, 7.2), QPointF(18, 11))
-        camino.lineTo(QPointF(18, 16.5))
-        camino.lineTo(QPointF(19.5, 18))
-        camino.lineTo(QPointF(4.5, 18))
-        camino.closeSubpath()
-        p.drawPath(camino)
-        p.drawLine(QPointF(10, 20.5), QPointF(14, 20.5))
-
-    elif tipo == "datos":
-        p.drawEllipse(QRectF(5, 3.5, 14, 5))
-        p.drawLine(QPointF(5, 6), QPointF(5, 18))
-        p.drawLine(QPointF(19, 6), QPointF(19, 18))
-        p.drawArc(QRectF(5, 9.5, 14, 5), 180 * 16, 180 * 16)
-        p.drawArc(QRectF(5, 15.5, 14, 5), 180 * 16, 180 * 16)
-
     elif tipo == "nuevo":
         ruta((6, 3), (14, 3), (19, 8), (19, 21), (6, 21), cerrar=True)
         ruta((14, 3), (14, 8), (19, 8))
@@ -586,15 +568,6 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
     elif tipo == "menu":
         for y in (7, 12, 17):
             p.drawLine(QPointF(4, y), QPointF(20, y))
-
-    elif tipo == "rama":
-        p.drawEllipse(QPointF(7, 5), 2, 2)
-        p.drawEllipse(QPointF(7, 19), 2, 2)
-        p.drawEllipse(QPointF(17, 7), 2, 2)
-        p.drawLine(QPointF(7, 7), QPointF(7, 17))
-        camino = QPainterPath(QPointF(17, 9))
-        camino.cubicTo(QPointF(17, 13), QPointF(8, 12), QPointF(7, 16))
-        p.drawPath(camino)
 
     elif tipo == "analizar":
         p.setPen(QPen(QColor(VERDE), 1.7, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
@@ -632,11 +605,6 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
         ruta((15, 8), (9.5, 8), (9.5, 16), (15, 16))
         p.drawLine(QPointF(9.5, 12), QPointF(14, 12))
 
-
-
-
-
-
     elif tipo == "copiar":
         p.drawRoundedRect(QRectF(9, 9, 11, 11), 2, 2)
         ruta((15, 5.5), (15, 5), (5, 5), (5, 15), (5.5, 15))
@@ -647,62 +615,6 @@ def _dibujar_icono(tipo, color=TEXTO_SUAVE, tamano=24):
 
 def _icono_barra(tipo, color=TEXTO_SUAVE):
     return QIcon(_dibujar_icono(tipo, color))
-
-
-def _icono_campana(con_punto):
-    """Campana de notificaciones; con punto rojo si hay notificaciones nuevas."""
-    pixmap = _dibujar_icono("campana")
-    if con_punto:
-        p = QPainter(pixmap)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(ROJO))
-        p.drawEllipse(QPointF(18, 6), 3.6, 3.6)
-        p.end()
-    return QIcon(pixmap)
-
-
-def _icono_punto(color):
-    """Punto de color para las entradas del menu de notificaciones."""
-    pixmap = QPixmap(24, 24)
-    pixmap.setDevicePixelRatio(2)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    p = QPainter(pixmap)
-    p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QColor(color))
-    p.drawEllipse(QPointF(6, 6), 3, 3)
-    p.end()
-    return QIcon(pixmap)
-
-
-def _icono_insignia(texto, tamano=20):
-    """Insignia cuadrada con iniciales (como la del proyecto en PyCharm)."""
-    escala = 2
-    pixmap = QPixmap(tamano * escala, tamano * escala)
-    pixmap.setDevicePixelRatio(escala)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    p = QPainter(pixmap)
-    p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    p.setPen(Qt.PenStyle.NoPen)
-    p.setBrush(QColor(MORADO))
-    p.drawRoundedRect(QRectF(0, 0, tamano, tamano), 4, 4)
-    p.setPen(QColor("#FFFFFF"))
-    p.setFont(QFont("Segoe UI", 7, QFont.Weight.Bold))
-    p.drawText(QRectF(0, 0, tamano, tamano), Qt.AlignmentFlag.AlignCenter, texto)
-    p.end()
-    return QIcon(pixmap)
-
-
-def _rama_git():
-    """Nombre de la rama de Git del proyecto (lee .git/HEAD), o None."""
-    try:
-        cabeza = (RUTA_PROYECTO / ".git" / "HEAD").read_text(encoding="utf-8").strip()
-    except OSError:
-        return None
-    if cabeza.startswith("ref: refs/heads/"):
-        return cabeza[len("ref: refs/heads/"):]
-    return cabeza[:7] or None
 
 
 def _separador_vertical():
@@ -716,32 +628,6 @@ def _espaciador():
     espacio = QWidget()
     espacio.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
     return espacio
-
-
-class _LogoEYKOL(QWidget):
-    """Texto EYKOL con degradado morado -> azul."""
-
-    def __init__(self):
-        super().__init__()
-        self.fuente = QFont("Segoe UI", 12, QFont.Weight.Bold)
-        self.fuente.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 4)
-        self.setFixedSize(124, 32)
-        self.setToolTip("EYKOL IDE")
-
-    def paintEvent(self, _event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        camino = QPainterPath()
-        camino.addText(QPointF(0, 0), self.fuente, "EYKOL")
-        # Centra el texto dentro del espacio del logo (horizontal y vertical)
-        caja = camino.boundingRect()
-        camino.translate(self.width() / 2 - caja.center().x(), self.height() / 2 - caja.center().y())
-        caja = camino.boundingRect()
-        degradado = QLinearGradient(caja.topLeft(), caja.topRight())
-        degradado.setColorAt(0, QColor(MORADO))
-        degradado.setColorAt(1, QColor(AZUL))
-        p.fillPath(camino, QBrush(degradado))
-        p.end()
 
 
 # =============================================================================
@@ -1377,10 +1263,20 @@ class VentanaIDE(QMainWindow):
         barra.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
         self.addToolBar(barra)
 
-        # ----- Izquierda: logo, menu principal, proyecto y rama  -----
-        barra.addWidget(_LogoEYKOL())
+        # ----- Izquierda: insignia [E] + EYKOL y menu ☰ -----
+        marca = QWidget()
+        layout_marca = QHBoxLayout(marca)
+        layout_marca.setContentsMargins(2, 0, 8, 0)
+        layout_marca.setSpacing(8)
 
-        # ☰ despliega la barra de menus en la misma linea
+        icono_e = QLabel()
+        icono_e.setPixmap(_crear_icono("logo").pixmap(22, 22))
+        texto_eykol = QLabel("EYKOL")
+        texto_eykol.setStyleSheet("font-weight: bold; font-size: 13px; color: #FFFFFF; background: transparent;")
+        layout_marca.addWidget(icono_e)
+        layout_marca.addWidget(texto_eykol)
+        barra.addWidget(marca)
+
         self.boton_menu = QToolButton()
         self.boton_menu.setObjectName("botonMenu")
         self.boton_menu.setIcon(_icono_barra("menu"))
@@ -1397,29 +1293,7 @@ class VentanaIDE(QMainWindow):
         self.accion_barra_menu = barra.addWidget(self.barra_menu)
         self.accion_barra_menu.setVisible(False)
 
-        nombre_proyecto = RUTA_PROYECTO.name
-        palabras = [p for p in nombre_proyecto.replace("-", "_").split("_") if p and p[0].isalpha()]
-        iniciales = ("".join(p[0] for p in palabras)[:2] or "EY").upper()
-        menu_proyecto = QMenu(self)
-        menu_proyecto.addAction(self.accion_abrir)
-        menu_proyecto.addAction("Abrir carpeta de ejemplos", self._abrir_carpeta_ejemplos)
-        menu_proyecto.addAction("Recargar explorador", self._cargar_explorador)
-        self._ocultos_con_menu = []   # se esconden mientras la barra de menus esta abierta
-        selector_proyecto = self._selector(f"{nombre_proyecto}  ▾", _icono_insignia(iniciales),
-                                           "Proyecto", menu_proyecto)
-        self._ocultos_con_menu.append(barra.addWidget(selector_proyecto))
-
-        rama = _rama_git()
-        if rama:
-            etiqueta_rama = QLabel()
-            etiqueta_rama.setObjectName("ramaGit")
-            etiqueta_rama.setText(rama)
-            etiqueta_rama.setToolTip(f"Rama de Git actual: {rama}")
-            icono_rama = QLabel()
-            icono_rama.setPixmap(_dibujar_icono("rama", TEXTO_GRIS, 16))
-            icono_rama.setStyleSheet("padding-left: 6px;")
-            self._ocultos_con_menu.append(barra.addWidget(icono_rama))
-            self._ocultos_con_menu.append(barra.addWidget(etiqueta_rama))
+        self._ocultos_con_menu = []   # se esconde mientras la barra de menus esta abierta
 
         barra.addWidget(_espaciador())
 
@@ -1437,28 +1311,15 @@ class VentanaIDE(QMainWindow):
 
         barra.addWidget(_espaciador())
 
-        # Botones de icono: abrir, guardar, limpiar | ejecutar
-        for accion in (self.accion_abrir, None, self.accion_limpiar):
-            boton = QToolButton()
-            if accion is None:
-                # Guardar: misma funcion que en la franja lateral, icono de contorno
-                boton.setIcon(_icono_barra("guardar"))
-                boton.setToolTip(self.accion_guardar.toolTip())
-                boton.clicked.connect(self.accion_guardar.trigger)
-            else:
-                boton.setDefaultAction(accion)
-            boton.setIconSize(QSize(18, 18))
-            boton.setFixedSize(32, 32)
-            boton.setCursor(Qt.CursorShape.PointingHandCursor)
-            barra.addWidget(boton)
+        # Derecha: Limpiar (bote de basura) | ▶ Ejecutar
+        boton_limpiar = QToolButton()
+        boton_limpiar.setDefaultAction(self.accion_limpiar)
+        boton_limpiar.setIconSize(QSize(18, 18))
+        boton_limpiar.setFixedSize(32, 32)
+        boton_limpiar.setCursor(Qt.CursorShape.PointingHandCursor)
+        barra.addWidget(boton_limpiar)
 
         barra.addWidget(_separador_vertical())
-
-        # ----- Configuracion de ejecucion: "Archivo actual" + ejecutar / analizar -----
-        self.menu_ejecucion = QMenu(self)
-        self.menu_ejecucion.aboutToShow.connect(self._llenar_menu_ejecucion)
-        barra.addWidget(self._selector("Archivo actual  ▾", _icono_barra("archivo", TEXTO_GRIS),
-                                       "Qué se ejecuta: el archivo abierto o un ejemplo", self.menu_ejecucion))
 
         self.boton_ejecutar = QToolButton()
         self.boton_ejecutar.setObjectName("btnEjecutar")
@@ -1467,27 +1328,6 @@ class VentanaIDE(QMainWindow):
         self.boton_ejecutar.setFixedSize(34, 32)
         self.boton_ejecutar.setCursor(Qt.CursorShape.PointingHandCursor)
         barra.addWidget(self.boton_ejecutar)
-
-        boton_analizar = QToolButton()
-        boton_analizar.setDefaultAction(self.accion_analizar)
-        boton_analizar.setIconSize(QSize(18, 18))
-        boton_analizar.setFixedSize(32, 32)
-        boton_analizar.setCursor(Qt.CursorShape.PointingHandCursor)
-        barra.addWidget(boton_analizar)
-
-    def _selector(self, texto, icono, tooltip, menu):
-        """Selector con texto e icono (proyecto, "Archivo actual"), como en PyCharm."""
-        boton = QToolButton()
-        boton.setObjectName("selectorBarra")
-        boton.setText(texto)
-        boton.setIcon(icono)
-        boton.setIconSize(QSize(18, 18))
-        boton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        boton.setToolTip(tooltip)
-        boton.setCursor(Qt.CursorShape.PointingHandCursor)
-        boton.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        boton.setMenu(menu)
-        return boton
 
     def _crear_menu_principal(self):
         """Barra de menus que despliega el ☰ (como el menu principal de PyCharm)."""
@@ -1568,26 +1408,9 @@ class VentanaIDE(QMainWindow):
         bloque = min(self._enlaces_consola)
         self.editor.ir_a(*self._enlaces_consola[bloque])
 
-    def _llenar_menu_ejecucion(self):
-        """Opciones de "Archivo actual": el archivo abierto o cualquier ejemplo."""
-        self.menu_ejecucion.clear()
-        self.menu_ejecucion.addAction(_icono_barra("ejecutar"), f"Archivo actual ({self._nombre_archivo()})",
-                                      self.ejecutar_codigo)
-        if RUTA_EJEMPLOS.exists():
-            self.menu_ejecucion.addSeparator()
-            for archivo in sorted(RUTA_EJEMPLOS.glob("*.txt")):
-                self.menu_ejecucion.addAction(_icono_barra("archivo", TEXTO_GRIS), archivo.name,
-                                              lambda _marcado=False, ruta=archivo: self._ejecutar_ejemplo(ruta))
-
     def _ejecutar_ejemplo(self, ruta):
         self._cargar_archivo(ruta)      # lo abre en su pestaña (o cambia a ella)
         self.ejecutar_codigo()
-
-    def _abrir_carpeta_ejemplos(self):
-        try:
-            os.startfile(str(RUTA_EJEMPLOS))     # Windows
-        except (AttributeError, OSError) as error:
-            QMessageBox.information(self, "Carpeta de ejemplos", f"{RUTA_EJEMPLOS}\n\n{error}")
 
     def eventFilter(self, objeto, evento):
         # Esc en el buscador regresa al editor
@@ -1632,48 +1455,44 @@ class VentanaIDE(QMainWindow):
         layout_islas.setContentsMargins(6, 6, 6, 6)
         layout_islas.setSpacing(0)
 
-        # Arriba: explorador | editor
+        # Explorador a la izquierda (toda la altura); editor + consola apilados a la derecha
+        self.divisor_v = QSplitter(Qt.Orientation.Vertical)
+        self.divisor_v.setObjectName("divisorIslas")
+        self.divisor_v.setHandleWidth(6)
+        self.divisor_v.setChildrenCollapsible(False)
+        self.divisor_v.addWidget(_Isla(self._crear_panel_editor()))
+        self.isla_consola = _Isla(self._crear_panel_inferior())
+        self.divisor_v.addWidget(self.isla_consola)
+        self.divisor_v.setStretchFactor(0, 3)
+        self.divisor_v.setStretchFactor(1, 2)
+        self.divisor_v.setSizes([460, 260])
+
         self.divisor_h = QSplitter(Qt.Orientation.Horizontal)
         self.divisor_h.setObjectName("divisorIslas")
         self.divisor_h.setHandleWidth(6)
         self.divisor_h.setChildrenCollapsible(False)
         self.isla_explorador = _Isla(self._crear_explorador())
         self.divisor_h.addWidget(self.isla_explorador)
-        self.divisor_h.addWidget(_Isla(self._crear_panel_editor()))
+        self.divisor_h.addWidget(self.divisor_v)
         self.divisor_h.setStretchFactor(1, 1)
         self.divisor_h.setSizes([235, 965])
-
-        # Abajo: la consola ocupa todo el ancho, desde la barra izquierda
-        # (debajo del explorador y del editor), como el panel Run de PyCharm
-        self.divisor_v = QSplitter(Qt.Orientation.Vertical)
-        self.divisor_v.setObjectName("divisorIslas")
-        self.divisor_v.setHandleWidth(6)
-        self.divisor_v.setChildrenCollapsible(False)
-        self.divisor_v.addWidget(self.divisor_h)
-        self.isla_consola = _Isla(self._crear_panel_inferior())
-        self.divisor_v.addWidget(self.isla_consola)
-        self.divisor_v.setStretchFactor(0, 3)
-        self.divisor_v.setStretchFactor(1, 2)
-        self.divisor_v.setSizes([540, 360])     # 60% editor, 40% consola
-        layout_islas.addWidget(self.divisor_v)
+        layout_islas.addWidget(self.divisor_h)
 
         layout_principal.addWidget(zona_islas)
-        layout_principal.addWidget(self._crear_rail_derecho())
-        self._sincronizar_herramientas()
 
-    # Herramientas de EYKOL de la parte baja de la barra izquierda:
+    # Herramientas de EYKOL accesibles desde el menu ☰ -> Herramientas:
     # (icono, nombre, pestaña del panel inferior que abren)
     HERRAMIENTAS_EYKOL = (
-        ("consola", "Consola (Terminal)", 0),
-        ("intermedio", "Código intermedio", 1),
-        ("arbol", "Árbol sintáctico", 2),
-        ("tokens", "Tokens", 3),
-        ("simbolos", "Tabla de símbolos", 4),
+        ("consola", "Terminal", 0),
+        ("tokens", "Tokens", 1),
+        ("simbolos", "Tabla de símbolos", 2),
+        ("intermedio", "Código intermedio", 3),
+        ("arbol", "Árbol sintáctico", 4),
     )
 
     def _crear_rail(self):
-        """Barra izquierda estilo PyCharm: arriba archivo y edicion, abajo las
-        herramientas de EYKOL (en lugar de las de Python)."""
+        """Barra izquierda con los 7 botones principales: Nuevo, Explorador, Guardar |
+        Copiar, Pegar, Cortar | Acerca de."""
         rail = QFrame()
         rail.setObjectName("railLateral")
         rail.setFixedWidth(44)
@@ -1696,108 +1515,20 @@ class VentanaIDE(QMainWindow):
             layout_rail.addWidget(boton)
             return boton
 
-        # ----- Arriba: archivo y edicion -----
-        for accion in (self.accion_explorador, self.accion_nuevo, self.accion_guardar):
+        for accion in (self.accion_nuevo, self.accion_explorador, self.accion_guardar):
             boton_de(accion)
         separador()
         for accion in (self.accion_copiar, self.accion_pegar, self.accion_cortar):
             boton_de(accion)
+        separador()
+        boton_de(self.accion_acerca)
 
         layout_rail.addStretch()
-
-        # ----- Abajo: herramientas de EYKOL  -----
-        self.botones_herramientas = []
-        for icono, nombre, indice in self.HERRAMIENTAS_EYKOL:
-            accion = QAction(_icono_barra(icono), nombre, self)
-            accion.setToolTip(nombre)
-            accion.setCheckable(True)
-            accion.triggered.connect(lambda _marcado, i=indice: self._mostrar_herramienta(i))
-            self.botones_herramientas.append((boton_de(accion), indice))
-        separador()
-        boton_de(self.accion_palabras)
-        boton_de(self.accion_acerca)
         return rail
-
-    def _crear_rail_derecho(self):
-        """Barra derecha como la de PyCharm: notificaciones y datos del programa."""
-        rail = QFrame()
-        rail.setObjectName("railDerecho")
-        rail.setFixedWidth(44)
-        layout = QVBoxLayout(rail)
-        layout.setContentsMargins(6, 10, 6, 10)
-        layout.setSpacing(6)
-
-        # Notificaciones (campana con punto rojo cuando hay algo nuevo)
-        self._notificaciones = []      # [(hora, texto, color)], la mas reciente primero
-        self.boton_notificaciones = QToolButton(rail)
-        self.boton_notificaciones.setIcon(_icono_campana(False))
-        self.boton_notificaciones.setIconSize(QSize(18, 18))
-        self.boton_notificaciones.setFixedSize(32, 32)
-        self.boton_notificaciones.setToolTip("Notificaciones")
-        self.boton_notificaciones.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.boton_notificaciones.clicked.connect(self._mostrar_notificaciones)
-        layout.addWidget(self.boton_notificaciones)
-
-        # Datos: variables del programa (tabla de simbolos), como "Database" en PyCharm
-        accion_datos = QAction(_icono_barra("datos"), "Variables del programa (tabla de símbolos)", self)
-        accion_datos.setToolTip("Variables del programa (tabla de símbolos)")
-        accion_datos.setCheckable(True)
-        accion_datos.triggered.connect(lambda _marcado: self._mostrar_herramienta(4))
-        boton_datos = QToolButton(rail)
-        boton_datos.setDefaultAction(accion_datos)
-        boton_datos.setIconSize(QSize(18, 18))
-        boton_datos.setFixedSize(32, 32)
-        boton_datos.setCursor(Qt.CursorShape.PointingHandCursor)
-        layout.addWidget(boton_datos)
-        self.botones_herramientas.append((boton_datos, 4))   # se marca junto con el de la izquierda
-
-        layout.addStretch()
-        return rail
-
-    # ---------------------------- Notificaciones -----------------------------
-    def _notificar(self, texto, color=TEXTO):
-        self._notificaciones.insert(0, (time.strftime("%H:%M"), texto, color))
-        del self._notificaciones[20:]
-        self.boton_notificaciones.setIcon(_icono_campana(True))
-        self.boton_notificaciones.setToolTip(f"Notificaciones ({len(self._notificaciones)}) — hay nuevas")
-
-    def _marcar_notificaciones_vistas(self):
-        self.boton_notificaciones.setIcon(_icono_campana(False))
-        self.boton_notificaciones.setToolTip(f"Notificaciones ({len(self._notificaciones)})")
-
-    def _mostrar_notificaciones(self):
-        menu = QMenu(self)
-        if not self._notificaciones:
-            vacio = menu.addAction("No hay notificaciones")
-            vacio.setEnabled(False)
-        else:
-            for hora, texto, color in self._notificaciones:
-                menu.addAction(_icono_punto(color), f"{hora}    {texto}")
-            menu.addSeparator()
-            menu.addAction("Limpiar notificaciones", self._limpiar_notificaciones)
-        self._marcar_notificaciones_vistas()
-        # Se abre hacia la izquierda de la campana, como en PyCharm
-        posicion = self.boton_notificaciones.mapToGlobal(QPoint(-menu.sizeHint().width() - 6, 0))
-        menu.exec(posicion)
-
-    def _limpiar_notificaciones(self):
-        self._notificaciones.clear()
-        self._marcar_notificaciones_vistas()
 
     def _mostrar_herramienta(self, indice):
-        """Como en PyCharm: si la herramienta ya esta abierta se oculta, si no se abre."""
-        if not self.isla_consola.isHidden() and self.pestanas.currentIndex() == indice:
-            self.isla_consola.setVisible(False)
-        else:
-            self.isla_consola.setVisible(True)
-            self.pestanas.setCurrentIndex(indice)
-        self._sincronizar_herramientas()
-
-    def _sincronizar_herramientas(self, *_):
-        visible = not getattr(self, "isla_consola", self.pestanas).isHidden()
-        actual = self.pestanas.currentIndex()
-        for boton, indice in getattr(self, "botones_herramientas", []):
-            boton.defaultAction().setChecked(visible and indice == actual)
+        self.isla_consola.setVisible(True)
+        self.pestanas.setCurrentIndex(indice)
 
     def mostrar_palabras_reservadas(self):
         """Ventana con las palabras reservadas de EYKOL. Doble clic: la inserta en el editor."""
@@ -1915,6 +1646,7 @@ class VentanaIDE(QMainWindow):
         doc = _Documento(self._nombre_libre() if sin_titulo else "")
         doc.editor.aplicar_tamano(self._tamano_editor)
         doc.editor.document().modificationChanged.connect(self._actualizar_titulo)
+        doc.editor.cursorPositionChanged.connect(self._actualizar_posicion_cursor)
         self._documentos.append(doc)
         self.pila_editores.addWidget(doc.editor)
 
@@ -1956,6 +1688,7 @@ class VentanaIDE(QMainWindow):
             return
         self.pila_editores.setCurrentWidget(doc.editor)
         self._actualizar_titulo()
+        self._actualizar_posicion_cursor()
         if hasattr(self, "explorador"):
             if doc.archivo:
                 self._seleccionar_en_explorador(doc.archivo)
@@ -2001,34 +1734,33 @@ class VentanaIDE(QMainWindow):
 
     def _crear_panel_inferior(self):
         self.pestanas = QTabWidget()
+        self.pestanas.setObjectName("panelInferior")
         self.pestanas.setDocumentMode(True)
-        # Sin fila de pestañas: se cambia de vista con los botones de la barra izquierda
-        self.pestanas.tabBar().hide()
 
-        self.pestanas.addTab(self._crear_terminal(), "TERMINAL")
+        self.pestanas.addTab(self._crear_terminal(), ">_ Terminal")
+
+        self.tabla_tokens = crear_tabla_tokens()
+        self.pestanas.addTab(self.tabla_tokens, "Tokens")
+
+        self.tabla_simbolos = crear_tabla_simbolos()
+        self.pestanas.addTab(self.tabla_simbolos, "Tabla de Símbolos")
 
         self.codigo_intermedio = EditorCodigo(solo_lectura=True, tamano=10)
         self.codigo_intermedio.setObjectName("codigoIntermedio")
         self.resaltador_intermedio = ResaltadorIntermedio(self.codigo_intermedio.document())
-        self.pestanas.addTab(self.codigo_intermedio, "CÓDIGO INTERMEDIO")
+        self.pestanas.addTab(self.codigo_intermedio, "Código Intermedio")
 
         self.arbol_sintactico = QTreeWidget()
         self.arbol_sintactico.setObjectName("arbolSintactico")
         self.arbol_sintactico.setColumnCount(2)
         self.arbol_sintactico.setHeaderLabels(["Nodo", "Valor"])
         self.arbol_sintactico.header().resizeSection(0, 320)
-        self.pestanas.addTab(self.arbol_sintactico, "ÁRBOL SINTÁCTICO")
+        self.pestanas.addTab(self.arbol_sintactico, "Árbol Sintáctico")
 
-        self.tabla_tokens = crear_tabla_tokens()
-        self.pestanas.addTab(self.tabla_tokens, "TOKENS")
-
-        self.tabla_simbolos = crear_tabla_simbolos()
-        self.pestanas.addTab(self.tabla_simbolos, "TABLA DE SÍMBOLOS")
-        self.pestanas.currentChanged.connect(self._sincronizar_herramientas)
         return self.pestanas
 
     def _crear_terminal(self):
-        """Una sola consola (como el panel Run de PyCharm) con la salida y sus apartados."""
+        """Una sola consola con la salida y sus apartados."""
         self.salida = QPlainTextEdit()
         self.salida.setObjectName("salidaTerminal")
         self.salida.setReadOnly(True)
@@ -2038,43 +1770,31 @@ class VentanaIDE(QMainWindow):
         return self.salida
 
     def _crear_barra_estado(self):
-        """Barra de estado estilo PyCharm: ruta del archivo a la izquierda y
-        datos del editor a la derecha."""
+        """Barra de estado inferior: estado de validez a la izquierda,
+        posicion del cursor y lenguaje a la derecha."""
         barra = self.statusBar()
 
-        # ----- Izquierda: Equipo_5_EYKOL › ejemplos › archivo.txt  + mensajes -----
-        self.etiqueta_migas = QLabel()
-        self.etiqueta_migas.setTextFormat(Qt.TextFormat.RichText)
-        self.etiqueta_migas.setStyleSheet("padding-left: 10px;")
-        barra.addWidget(self.etiqueta_migas)
         self.etiqueta_estado = QLabel()
         barra.addWidget(self.etiqueta_estado)
         self._poner_estado("Estado: Listo para analizar.")
 
-        # ----- Derecha: errores y lenguaje -----
-        self.etiqueta_errores_estado = QLabel()
-        etiqueta_lenguaje = QLabel("EYKOL")
+        self.etiqueta_cursor = QLabel("Ln 1, Col 1")
+        etiqueta_lenguaje = QLabel("UTF-8   EYKOL")
         etiqueta_lenguaje.setToolTip("Lenguaje del archivo")
-        for etiqueta in (self.etiqueta_errores_estado, etiqueta_lenguaje):
+        for etiqueta in (self.etiqueta_cursor, etiqueta_lenguaje):
             etiqueta.setStyleSheet("padding: 0px 10px;")
             barra.addPermanentWidget(etiqueta)
+        self._actualizar_posicion_cursor()
 
-    def _actualizar_migas(self):
-        """Ruta del archivo actual en la barra de estado: proyecto › carpeta › archivo."""
-        if self.archivo_actual:
-            try:
-                partes = list(self.archivo_actual.relative_to(RUTA_PROYECTO).parts)
-            except ValueError:
-                partes = [self.archivo_actual.parent.name, self.archivo_actual.name]
-        else:
-            partes = [self.documento.nombre]
-        partes = [RUTA_PROYECTO.name] + partes
-        separador = f' <span style="color:{TEXTO_APAGADO}">›</span> '
-        html = separador.join(
-            f'<span style="color:{TEXTO if i == len(partes) - 1 else TEXTO_GRIS}">{parte}</span>'
-            for i, parte in enumerate(partes)
-        )
-        self.etiqueta_migas.setText(html)
+    def _actualizar_posicion_cursor(self):
+        if not hasattr(self, "etiqueta_cursor") or self.documento is None:
+            return
+        cursor = self.editor.textCursor()
+        linea = cursor.blockNumber() + 1
+        columna = cursor.positionInBlock() + 1
+        seleccion = len(cursor.selectedText())
+        extra = f"  ({seleccion} selecc.)" if seleccion else ""
+        self.etiqueta_cursor.setText(f"Ln {linea}, Col {columna}{extra}")
 
     def _poner_estado(self, texto, color=TEXTO_GRIS, negrita=False):
         peso = "bold" if negrita else "normal"
@@ -2114,7 +1834,6 @@ class VentanaIDE(QMainWindow):
 
     def alternar_panel(self):
         self.isla_consola.setVisible(self.isla_consola.isHidden())
-        self._sincronizar_herramientas()
 
     def _al_seleccionar_archivo(self, item, _columna):
         ruta = item.data(0, Qt.ItemDataRole.UserRole)
@@ -2126,7 +1845,6 @@ class VentanaIDE(QMainWindow):
         if inicial.exists():
             self._cargar_archivo(inicial)
             self.ejecutar_codigo()
-            self._marcar_notificaciones_vistas()   # al abrir el IDE no aparece el punto rojo
 
     def _cargar_archivo(self, archivo):
         """Abre el archivo en una pestaña. Si ya estaba abierto, solo cambia a ella;
@@ -2189,8 +1907,6 @@ class VentanaIDE(QMainWindow):
         nombre = self.documento.nombre
         modificado = self.documento.modificado
         self.setWindowTitle(f"{'● ' if modificado else ''}{nombre} — EYKOL IDE")
-        if hasattr(self, "etiqueta_migas"):
-            self._actualizar_migas()
 
     def nuevo_documento(self):
         """Nueva pestaña en blanco (boton "+", Ctrl+N o Ctrl+T)."""
@@ -2232,7 +1948,6 @@ class VentanaIDE(QMainWindow):
         self._cargar_explorador()
         self._actualizar_titulo()
         self._poner_estado(f"Guardado: {ruta.name}", VERDE_SUAVE)
-        self._notificar(f"Guardado: {ruta.name}", TEXTO_GRIS)
         return True
 
     def closeEvent(self, event):
@@ -2308,8 +2023,8 @@ class VentanaIDE(QMainWindow):
         self.arbol_sintactico.clear()
         self.archivo_actual = None
         self.explorador.clearSelection()
-        self.etiqueta_errores_estado.setText("")
         self._actualizar_titulo()
+        self._actualizar_posicion_cursor()
         self._poner_estado("Estado: Listo para analizar.")
 
         llenar_tabla_tokens(self.tabla_tokens, [])
@@ -2337,23 +2052,13 @@ class VentanaIDE(QMainWindow):
         self.salida.ensureCursorVisible()
         return cursor.blockNumber()
 
-    def _escribir_separador(self, titulo="", color=BORDE):
-        """Linea divisoria de la consola, con o sin titulo: ── ERRORES (1) ──────"""
-        ancho = 64
-        if titulo:
-            texto = f"── {titulo} "
-            texto += "─" * max(4, ancho - len(texto))
-        else:
-            texto = "─" * ancho
-        self._escribir_linea((texto, color, bool(titulo)))
-
     def _limpiar_salida(self):
         self.salida.clear()
         self._enlaces_consola = {}
 
     def _mensaje_inicial_consola(self):
         self._limpiar_salida()
-        self._escribir_linea(("> ", MORADO, True),
+        self._escribir_linea(("$ ", MORADO, True),
                              ("Ejecuta el código (F5) para ver aquí la salida y los errores", TEXTO_APAGADO))
 
     def _comando_terminal(self):
@@ -2377,13 +2082,14 @@ class VentanaIDE(QMainWindow):
             return f"Error {fase.lower()}: {mensaje}"
         return str(error)
 
-    def _escribir_errores(self, errores):
+    def _escribir_errores(self, errores, separar=False):
         """Apartado ERRORES dentro de la misma consola. Cada ubicacion es un
         enlace: al hacer clic lleva a esa linea del editor."""
         if not errores:
             return
-        self._escribir_linea(("", TEXTO))
-        self._escribir_separador(f"ERRORES ({len(errores)})", ROJO)
+        if separar:
+            self._escribir_linea(("", TEXTO))
+        self._escribir_linea(("========== ERRORES ==========", ROJO, True))
         nombre = self._nombre_archivo()
         for numero, error in enumerate(errores):
             if numero:
@@ -2461,14 +2167,8 @@ class VentanaIDE(QMainWindow):
         self.arbol_sintactico.expandAll()
 
     def _actualizar_titulos_pestanas(self, tokens, simbolos):
-        """Los conteos se muestran en el tooltip de cada boton de la barra izquierda."""
-        conteos = {3: tokens, 4: simbolos}
-        for boton, indice in getattr(self, "botones_herramientas", []):
-            nombre = next(n for _, n, i in self.HERRAMIENTAS_EYKOL if i == indice)
-            cantidad = conteos.get(indice)
-            texto = f"{nombre} ({cantidad})" if cantidad else nombre
-            boton.defaultAction().setToolTip(texto)
-            boton.setToolTip(texto)
+        self.pestanas.setTabText(1, f"Tokens ({tokens})" if tokens else "Tokens")
+        self.pestanas.setTabText(2, f"Tabla de Símbolos ({simbolos})" if simbolos else "Tabla de Símbolos")
 
     # ---------------------------- Compilacion --------------------------------
     def ejecutar_codigo(self):
@@ -2486,23 +2186,21 @@ class VentanaIDE(QMainWindow):
             return
 
         comando = self._comando_terminal() if ejecutar else f"analizar {self._comando_terminal()[len('python main.py '):]}"
-        inicio = time.perf_counter()
         try:
             resultado = compilar(codigo, ejecutar=ejecutar)
         except Exception as error:  # fallo interno: se muestra en lugar de cerrar el IDE
             self._limpiar_salida()
-            self._escribir_linea(("> ", MORADO, True), (comando, TEXTO_APAGADO))
+            self._escribir_linea(("$ ", MORADO, True), (comando, TEXTO_SUAVE))
             self._escribir_linea((f"✗ Error interno del compilador: {error}", ROJO, True))
             self._poner_estado("Error interno del compilador", ROJO, True)
             return
-        milisegundos = (time.perf_counter() - inicio) * 1000
 
         errores = list(resultado.errores)
 
-        # ----- Consola: comando, salida, errores y estado (todo en una) -----
+        # ----- Consola: comando, salida, errores y prompt final -----
         self._limpiar_salida()
         self._documento_ejecutado = self.documento
-        self._escribir_linea(("> ", MORADO, True), (comando, TEXTO_APAGADO))
+        self._escribir_linea(("$ ", MORADO, True), (comando, TEXTO_SUAVE))
         if not ejecutar:
             self._escribir_linea(("(solo análisis: el programa no se ejecutó)", TEXTO_APAGADO))
         for linea in resultado.salida:
@@ -2510,20 +2208,8 @@ class VentanaIDE(QMainWindow):
         if ejecutar and not resultado.salida and not errores:
             self._escribir_linea(("(el programa no mostró nada)", TEXTO_APAGADO))
 
-        self._escribir_errores(errores)
-
-        self._escribir_linea(("", TEXTO))
-        self._escribir_separador()
-        if errores:
-            self._escribir_linea(
-                (f"✗ Estado: Código inválido ({len(errores)} error(es) detectado(s))", ROJO, True)
-            )
-        else:
-            self._escribir_linea(("✓ Estado: Código válido (sin errores)", VERDE_SUAVE, True))
-        self._escribir_linea(
-            (f"Proceso terminado con código de salida {1 if errores else 0} ({milisegundos:.0f} ms)",
-             TEXTO_APAGADO)
-        )
+        self._escribir_errores(errores, separar=bool(resultado.salida or not ejecutar))
+        self._escribir_linea(("$ ", MORADO, True), ("█", MORADO))
 
         self.editor.marcar_errores(
             [(getattr(e, "linea", None), getattr(e, "columna", None)) for e in errores]
@@ -2537,22 +2223,13 @@ class VentanaIDE(QMainWindow):
         self._actualizar_titulos_pestanas(len(resultado.tokens or []), len(resultado.tabla_simbolos or {}))
 
         # ----- Barra de estado -----
-        # El estado (valido / invalido) ya no va aqui: se muestra en el panel ERRORES
-        self._poner_estado("")
-        accion = "ejecutado" if ejecutar else "analizado"
         if errores:
-            self._notificar(f"{self._nombre_archivo()}: {len(errores)} error(es)", ROJO)
-        else:
-            self._notificar(f"{self._nombre_archivo()}: {accion} sin errores", VERDE_SUAVE)
-        if errores:
-            self.etiqueta_errores_estado.setStyleSheet(f"padding: 0px 10px; color: {ROJO};")
-            self.etiqueta_errores_estado.setText(f"✗ {len(errores)} error(es)")
+            self._poner_estado(f"Estado: Código inválido ({len(errores)} error(es) detectado(s))", ROJO, True)
             if self.isla_consola.isHidden():
                 self.alternar_panel()
             self.pestanas.setCurrentIndex(0)
         else:
-            self.etiqueta_errores_estado.setStyleSheet(f"padding: 0px 10px; color: {VERDE_SUAVE};")
-            self.etiqueta_errores_estado.setText("✓ 0 errores")
+            self._poner_estado("Estado: Código válido (sin errores)", VERDE_SUAVE, True)
 
     def mostrar_acerca(self):
         QMessageBox.about(
