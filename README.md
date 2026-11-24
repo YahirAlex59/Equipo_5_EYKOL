@@ -37,7 +37,7 @@ python main.py
 ```
 
 Sin argumentos se abre la ventana del IDE. También se puede abrir directamente con
-`python ide/prueba_ventana.py`.
+`python ide/ventana_ide.py`.
 
 ## Palabras reservadas
 

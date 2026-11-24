@@ -19,7 +19,7 @@ def titulo(texto):
 
 def abrir_ide():
     from PyQt6.QtWidgets import QApplication
-    from ide.prueba_ventana import VentanaIDE
+    from ide.ventana_ide import VentanaIDE
 
     app = QApplication(sys.argv)
 
