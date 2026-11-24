@@ -24,11 +24,14 @@ pip install PyQt6 ply
 ## Cómo usar el compilador en consola
 
 ```bash
-python main.py ejemplos/hipotenusa.txt
-python main.py ejemplos/ejemplo.txt --todo
+python main.py ejemplos/hipotenusa.ko
+python main.py ejemplos/ejemplo.ko --todo
 ```
 
 La opción `--todo` muestra todas las fases del compilador.
+
+Los programas EYKOL usan la extensión **`.ko`**. El IDE guarda siempre con esa extensión;
+los archivos `.txt` antiguos se pueden abrir y, al guardarlos, se guardan como `.ko`.
 
 ## Cómo abrir el IDE
 
@@ -47,8 +50,8 @@ La lista completa está en `PALABRAS_RESERVADAS.md`.
 
 ## Ejemplos
 
-La carpeta `ejemplos/` contiene programas de muestra, entre ellos `ciclo_durante.txt`
-y `logica_booleana.txt`.
+La carpeta `ejemplos/` contiene programas de muestra, entre ellos `ciclo_durante.ko`
+y `logica_booleana.ko`.
 
 ## Estructura del proyecto
 

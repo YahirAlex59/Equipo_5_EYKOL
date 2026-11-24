@@ -51,6 +51,20 @@ from PyQt6.QtWidgets import (
 RUTA_PROYECTO = Path(__file__).resolve().parent.parent
 RUTA_EJEMPLOS = RUTA_PROYECTO / "ejemplos"
 
+# Extension de los programas EYKOL. Los .txt de antes se pueden seguir abriendo,
+# pero al guardarlos se guardan como .ko
+EXTENSION = ".ko"
+FILTRO_ABRIR = "Programas EYKOL (*.ko *.txt);;Todos los archivos (*)"
+FILTRO_GUARDAR = "Programas EYKOL (*.ko)"
+
+
+def _programas_eykol(carpeta):
+    """Archivos .ko (y .txt antiguos) de una carpeta, ordenados por nombre."""
+    if not carpeta.exists():
+        return []
+    archivos = list(carpeta.glob("*" + EXTENSION)) + list(carpeta.glob("*.txt"))
+    return sorted(archivos, key=lambda ruta: ruta.name.lower())
+
 if str(RUTA_PROYECTO) not in sys.path:
     sys.path.insert(0, str(RUTA_PROYECTO))
 
@@ -1036,7 +1050,7 @@ class _Documento:
         self.editor = EditorCodigo()
         self.resaltador = ResaltadorEYKOL(self.editor.document())
         self.archivo = None                 # Path del archivo, o None si no se ha guardado
-        self.nombre_nuevo = nombre_nuevo    # "Sin título 2.txt" mientras no tenga archivo
+        self.nombre_nuevo = nombre_nuevo    # "Sin título 2.ko" mientras no tenga archivo
         self.punto = QLabel("●")            # indicador de cambios sin guardar en la pestaña
         self.punto.setStyleSheet(f"color: {AMARILLO}; font-size: 10px;")
         self.punto.setToolTip("Cambios sin guardar")
@@ -1530,7 +1544,7 @@ class VentanaIDE(QMainWindow):
         usados = {d.nombre_nuevo for d in self._documentos if d.archivo is None and d is not excepto}
         n = 1
         while True:
-            nombre = "Sin título.txt" if n == 1 else f"Sin título {n}.txt"
+            nombre = f"Sin título{EXTENSION}" if n == 1 else f"Sin título {n}{EXTENSION}"
             if nombre not in usados:
                 return nombre
             n += 1
@@ -1701,11 +1715,11 @@ class VentanaIDE(QMainWindow):
         raiz = QTreeWidgetItem(self.explorador, ["ejemplos"])
         raiz.setIcon(0, _crear_icono("folder"))
 
-        if RUTA_EJEMPLOS.exists():
-            for archivo in sorted(RUTA_EJEMPLOS.glob("*.txt")):
-                item = QTreeWidgetItem(raiz, [archivo.name])
-                item.setIcon(0, _crear_icono("file"))
-                item.setData(0, Qt.ItemDataRole.UserRole, str(archivo))
+        for archivo in _programas_eykol(RUTA_EJEMPLOS):
+            item = QTreeWidgetItem(raiz, [archivo.name])
+            # Los programas .ko llevan el logo de EYKOL; los .txt antiguos, el de archivo
+            item.setIcon(0, _crear_icono("logo" if archivo.suffix == EXTENSION else "file"))
+            item.setData(0, Qt.ItemDataRole.UserRole, str(archivo))
 
         raiz.setExpanded(True)
         if self.archivo_actual:
@@ -1735,7 +1749,7 @@ class VentanaIDE(QMainWindow):
             self._cargar_archivo(Path(ruta))     # se abre en su propia pestaña
 
     def _abrir_archivo_inicial(self):
-        inicial = RUTA_EJEMPLOS / "ciclo_durante.txt"
+        inicial = RUTA_EJEMPLOS / f"ciclo_durante{EXTENSION}"
         if inicial.exists():
             self._cargar_archivo(inicial)
             self.ejecutar_codigo()
@@ -1812,29 +1826,39 @@ class VentanaIDE(QMainWindow):
         self.editor.setFocus()
 
     def abrir_archivo(self):
-        ruta, _ = QFileDialog.getOpenFileName(
-            self, "Abrir archivo", str(RUTA_EJEMPLOS),
-            "Archivos de texto (*.txt);;Todos los archivos (*)",
-        )
+        ruta, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", str(RUTA_EJEMPLOS), FILTRO_ABRIR)
         if ruta:
             self._cargar_archivo(Path(ruta))
 
     def guardar_archivo(self):
         if self.archivo_actual is None:
             return self.guardar_como()
-        return self._escribir_archivo(self.archivo_actual)
+        # Un .txt antiguo se guarda como .ko con el mismo nombre (el .txt no se borra)
+        return self._escribir_archivo(self.archivo_actual.with_suffix(EXTENSION))
 
     def guardar_como(self):
-        sugerido = self.archivo_actual or (RUTA_EJEMPLOS / "nuevo_programa.txt")
-        ruta, _ = QFileDialog.getSaveFileName(
-            self, "Guardar archivo", str(sugerido),
-            "Archivos de texto (*.txt);;Todos los archivos (*)",
-        )
+        if self.archivo_actual:
+            sugerido = self.archivo_actual.with_suffix(EXTENSION)
+        else:
+            sugerido = RUTA_EJEMPLOS / f"nuevo_programa{EXTENSION}"
+        ruta, _ = QFileDialog.getSaveFileName(self, "Guardar archivo", str(sugerido), FILTRO_GUARDAR)
         if not ruta:
             return False
-        return self._escribir_archivo(Path(ruta))
+        # El dialogo ya pregunto si se reemplaza; aqui solo se asegura la extension .ko
+        return self._escribir_archivo(Path(ruta).with_suffix(EXTENSION), confirmado=True)
 
-    def _escribir_archivo(self, ruta):
+    def _escribir_archivo(self, ruta, confirmado=False):
+        ruta = ruta.with_suffix(EXTENSION)
+        # Si se esta convirtiendo un .txt y ya existe otro .ko con ese nombre, se pregunta
+        if not confirmado and ruta.exists() and ruta != self.archivo_actual:
+            respuesta = QMessageBox.question(
+                self, "El archivo ya existe",
+                f"Ya existe «{ruta.name}».\n¿Deseas reemplazarlo con el contenido de «{self.documento.nombre}»?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if respuesta != QMessageBox.StandardButton.Yes:
+                return False
         try:
             ruta.write_text(self.editor.toPlainText(), encoding="utf-8")
         except OSError as error:

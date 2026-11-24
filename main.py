@@ -3,8 +3,8 @@
 # Punto de entrada de EYKOL.
 #
 #   python main.py                         -> abre el IDE
-#   python main.py ejemplos/errores.txt    -> ejecuta un archivo
-#   python main.py archivo.txt --todo      -> muestra tokens, arbol, etc.
+#   python main.py ejemplos/errores.ko     -> ejecuta un programa EYKOL (.ko)
+#   python main.py archivo.ko --todo       -> muestra tokens, arbol, etc.
 # -----------------------------------------------------------------------------
 
 import sys
@@ -38,7 +38,7 @@ def main():
     # Con argumentos: conservar la ejecución por consola
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     ver_todo = '--todo' in sys.argv
-    ruta = args[0] if args else 'ejemplos/ejemplo.txt'
+    ruta = args[0] if args else 'ejemplos/ejemplo.ko'
 
     with open(ruta, encoding='utf-8') as f:
         codigo = f.read()
